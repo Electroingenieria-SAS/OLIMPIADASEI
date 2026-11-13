@@ -72,8 +72,9 @@
     // Sprite original de la versión web: compañero del almacén.
     if(g.character.complete&&g.character.naturalWidth){c.drawImage(g.character,0,0,32,32,18*TILE,10*TILE,32,32)}
     const x=g.p.x*TILE,y=g.p.y*TILE;c.fillStyle='#12213c88';c.fillRect(x+5,y+27,23,4);
-    if(!g.avatarCanvas){g.avatarCanvas=document.createElement('canvas');EI.avatarOnCanvas(g.avatarCanvas,EI.state.player?.avatar||EI.state.avatar)}
-    c.drawImage(g.avatarCanvas,x+3,y+(g.frame%2?0:1),27,31);
+    const characterOptions=EI.state.player?.avatar||EI.state.avatar;
+    const drawn=window.EI_CHARACTERS?.drawAt(c,characterOptions,x,y,32,g.dir,g.frame,'walk');
+    if(!drawn){if(!g.avatarCanvas){g.avatarCanvas=document.createElement('canvas');EI.avatarOnCanvas(g.avatarCanvas,characterOptions)}c.drawImage(g.avatarCanvas,x+3,y+(g.frame%2?0:1),27,31)}
   }
   function interactCase(force){if(!g||g.current||g.ending)return;const clue=force&&dist(g.p,force)<=1?force:D.caseClues.find(c=>!g.resolved.has(c.id)&&dist(g.p,c)<=1);if(!clue){EI.toast('Acércate a una pista para investigarla.');return}g.path=[];g.goal=null;g.current=clue;
     $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">EVIDENCIA ${g.resolved.size+1} DE 4</div><h3>${clue.icon} ${esc(clue.name)}</h3><p>${esc(clue.desc)}</p><p><strong>${esc(clue.q)}</strong></p>${clue.options.map((s,i)=>`<button class="answer" data-clue-answer="${i}"><span class="answer-key">${'ABC'[i]}</span><span>${esc(s)}</span></button>`).join('')}</div></div>`;

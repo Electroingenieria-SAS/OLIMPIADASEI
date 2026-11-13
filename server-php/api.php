@@ -84,7 +84,7 @@ try {
             $d=input();$name=textVal($d['name']??'');$alias=textVal($d['alias']??'',24);$area=textVal($d['area']??'',60);
             if(strlen($name)<4||strlen($alias)<3||!in_array($area,AREAS,true))abortRequest('Verifica nombre, alias y área.');
             $avatar=$d['avatar']??[];if(!is_array($avatar))$avatar=[];
-            $avatar=array_intersect_key($avatar,array_flip(['skin','hair','hairColor','shirt','accessory']));
+            $avatar=array_intersect_key($avatar,array_flip(['skin','hair','hairColor','shirt','accessory','style','preset','hat']));
             foreach($avatar as $k=>$v)if(!is_scalar($v))unset($avatar[$k]);
             $id=bin2hex(random_bytes(10));$secret=bin2hex(random_bytes(24));
             $p=['id'=>$id,'name'=>$name,'alias'=>$alias,'area'=>$area,'avatar'=>$avatar,'access_hash'=>hash('sha256',$secret),'registered_at'=>date(DATE_ATOM)];
@@ -95,7 +95,7 @@ try {
             send(['player'=>publicPlayer($p),'scores'=>[],'access_key'=>$secret],201);
         case 'avatar':
             $d=input();$a=$d['avatar']??[];if(!is_array($a))abortRequest('Avatar inválido.');
-            $a=array_intersect_key($a,array_flip(['skin','hair','hairColor','shirt','accessory']));
+            $a=array_intersect_key($a,array_flip(['skin','hair','hairColor','shirt','accessory','style','preset','hat']));
             foreach($a as $k=>$v){if(!is_scalar($v))unset($a[$k]);else $a[$k]=textVal((string)$v,20);}
             $updated=db(function(array &$db)use($d,$a){$p=requirePlayer($d,$db);$db['players'][$p['id']]['avatar']=$a;return publicPlayer($db['players'][$p['id']]);});
             send(['player'=>$updated]);

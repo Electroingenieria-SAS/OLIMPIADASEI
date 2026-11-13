@@ -52,39 +52,65 @@
     window.scrollTo({top:0,behavior:'smooth'});
   }
   function unlocked(mode){if(!state.remote||!state.config.lock_by_day)return true;let start=state.config.start_date;if(!start)return true;const target=new Date(start+'T00:00:00-05:00').getTime()+(mode.day-1)*86400000;return Date.now()>=target}
-  function renderHub(){if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;
-    const done=Object.keys(state.scores).length;
-    $('#view').innerHTML=`<div class="hub">
-      <section class="hero">
-        <div class="hero-art"><canvas id="heroCanvas" width="400" height="260" aria-hidden="true"></canvas><span class="floating-coin">🏆</span>${state.player?`<div class="profile-bubble"><canvas id="heroAvatar" width="24" height="28"></canvas><span>${esc(state.player.alias)}</span></div>`:''}</div>
-        <div class="hero-copy">
-          <span class="event-tag">✦ LA AVENTURA DE APRENDER • EDICIÓN EI</span>
-          <h1>OLIMPIADAS<br><em>EI PIXEL</em></h1>
-          <p>Cinco mundos. Cinco desafíos. Una competencia para demostrar lo que sabes de calidad, SST, auditoría, ciberseguridad y logística.</p>
-          <div class="cta-row">
-            <button class="btn btn-primary" id="heroAction">${state.player?'▶ CONTINUAR AVENTURA':'✦ CREAR MI PERSONAJE'}</button>
-            <button class="btn btn-outline" id="heroRanking">🏆 VER CLASIFICACIÓN</button><button class="btn btn-outline" id="heroSprites">🎨 VER MIS 53 SPRITES</button>${state.player?'<button class="btn btn-outline" id="editAvatarBtn">✎ EDITAR AVATAR</button>':''}
+  function renderHub(){
+    if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;
+    const done=Object.keys(state.scores).length, next=D.modes.find(m=>state.scores[m.id]===undefined)||D.modes[0],
+      avatar=state.player?.avatar||state.avatar;
+    const selected=window.EI_CHARACTERS?.normalize(avatar).role||{name:'Explorador',role:'Operaciones',color:'#35c7bb'};
+    $('#view').innerHTML=`<div class="arcade-lobby hub">
+      <div class="game-path"><span class="path-dot"></span> CAMPAMENTO EI <span class="path-arrow">/</span> TEMPORADA 2026 <span class="path-arrow">/</span> CINCO DESAFÍOS</div>
+      <section class="arcade-hero">
+        <div class="arcade-hero-copy">
+          <div class="arcade-eyebrow"><span class="online-star">✦</span> LA AVENTURA DEL CONOCIMIENTO</div>
+          <h1>OLIMPIADAS <strong>EI <span>PIXEL</span></strong></h1>
+          <p>Un mundo de desafíos hecho para Electroingeniería. Demuestra tu rapidez, descubre pistas y escala hasta lo más alto del podio.</p>
+          <div class="arcade-actions">
+            <button type="button" class="btn btn-primary arcade-primary" id="heroAction">${state.player?'▶ SEGUIR JUGANDO':'▶ CREAR MI PERSONAJE'}</button>
+            <button type="button" class="btn btn-outline" id="heroRanking">🏆 CLASIFICACIÓN</button>
           </div>
-          <div class="quick-stats"><span>🎮 <b>5</b> minijuegos</span><span>⭐ <b>5.000</b> puntos posibles</span><span>🏅 <b>1 ganador</b> por área</span></div>
-          <div class="asset-strip" aria-label="Sprites integrados del paquete retro">${spriteRibbon()}</div>
+          <div class="arcade-hero-meta"><span>★ 5 MUNDOS</span><span>◷ TIEMPO LÍMITE</span><span>◆ PREMIOS POR ÁREA</span></div>
+        </div>
+        <div class="arcade-hero-world">
+          <canvas id="heroCanvas" width="400" height="260" aria-label="Escenario pixel art del campus EI"></canvas>
+          <div class="world-hud"><span>⚔ MODO AVENTURA</span><span>● 01</span></div>
+          <div class="stage-avatar"><canvas id="mainAvatarCanvas" width="112" height="112" aria-label="Personaje elegido"></canvas><div class="avatar-nameplate">${esc(state.player?.alias||selected.name)}<small>${esc(selected.role)}</small></div></div>
         </div>
       </section>
-      <div class="section-title-row"><div><div class="section-kicker">ELIGE TU DESAFÍO</div><h2>Tu ruta hacia el podio</h2></div><p>${state.player?`${esc(state.player.alias)} · ${total().toLocaleString('es-CO')} puntos`:'Regístrate y empieza a jugar'}</p></div>
-      <section class="modes" id="modeCards" aria-label="Modos de juego">${D.modes.map(m=>{
-        const completed=state.scores[m.id]!==undefined;const locked=!unlocked(m);
-        return `<button class="mode-card ${locked?'locked':''}" style="--accent:${m.color}" data-mode="${m.id}" ${locked?'disabled':''}>
-          <div class="mode-scene"><img class="mode-illustration" src="assets/pixel/mode-${m.id}.png" alt="Escenario pixel art de ${esc(m.title)}" loading="lazy"><span class="mode-illustration-mark">${m.icon}</span></div>
-          <div class="mode-body"><div><span class="pill">DÍA ${m.day}</span></div><h3>${esc(m.title)}</h3><span class="mode-desc">${esc(m.description)}</span>
-          <div class="mode-bottom"><span>${locked?'🔒 Próximamente':completed?'✓ Completado':'▶ Jugar ahora'}</span>${completed?`<strong class="chip-score">${Number(state.scores[m.id]).toLocaleString('es-CO')} PT</strong>`:`<strong>1.000 PT</strong>`}</div></div>
-        </button>`}).join('')}</section>
-      <div class="two-panels">
-        <section class="panel"><div class="section-kicker">AVANCE PERSONAL</div><h3>Tu recorrido de 5 días</h3><p class="panel-sub">Cada reto suma hasta 1.000 puntos para tu clasificación.</p><div class="progress-track"><div style="width:${done*20}%"></div></div><div class="steps">${D.modes.map(m=>`<div class="step ${state.scores[m.id]!==undefined?'done':''} ${state.scores[m.id]===undefined&&unlocked(m)?'active':''}"><div class="step-point">${state.scores[m.id]!==undefined?'✓':m.day}</div><div class="step-name">${esc(m.title)}</div></div>`).join('')}</div><p class="text-muted" style="font-size:12px;margin:23px 0 0">${done} de 5 desafíos completados · <b>${total().toLocaleString('es-CO')} puntos</b> acumulados</p></section>
-        <section class="panel"><div class="section-kicker">EL PODIO</div><h3>Premios por área 🏆</h3><p class="panel-sub">Se premia al mayor puntaje total en cada área de trabajo.</p><div id="hubRanking" class="empty-state">Cargando participantes…</div><button class="btn btn-blue btn-sm" id="moreRanking" style="margin-top:13px">Ver tabla completa →</button></section>
+      <div class="arcade-overview">
+        <button class="arcade-profile" id="heroProfile" type="button" aria-label="Elegir o modificar personaje">
+          <span class="profile-pixel"><canvas id="profileCanvas" width="60" height="60"></canvas></span>
+          <span class="profile-copy"><small>TU PERSONAJE</small><strong>${esc(state.player?.alias||'Elige a tu héroe')}</strong><span>${state.player?'Cambiar vestuario y personaje':'Seis personajes para elegir'}</span></span><span class="profile-arrow">›</span>
+        </button>
+        <div class="arcade-stat"><span class="stat-emoji">✦</span><span><small>MI PUNTAJE</small><strong>${total().toLocaleString('es-CO')} <em>PT</em></strong></span></div>
+        <div class="arcade-stat"><span class="stat-emoji">◈</span><span><small>RETOS SUPERADOS</small><strong>${done} <em>/ 5</em></strong></span></div>
+        <button class="arcade-mini-action" type="button" id="arcadeGallery"><span>▦</span><span>VER RECURSOS PIXEL<small>Biblioteca de sprites</small></span></button>
       </div>
+      <div class="arcade-section-title" id="modeSection"><div><span class="section-kicker">◈ EL MAPA DE LA COMPETENCIA</span><h2>Selecciona tu siguiente nivel</h2></div><span class="arcade-caption">5 MUNDOS · 1.000 PUNTOS POR NIVEL</span></div>
+      <section class="modes arcade-modes" id="modeCards" aria-label="Cinco mundos del videojuego">${D.modes.map(m=>{
+        const completed=state.scores[m.id]!==undefined,locked=!unlocked(m);
+        return `<button class="mode-card arcade-mode ${locked?'locked':''}" style="--accent:${m.color}" data-mode="${m.id}" ${locked?'disabled':''}>
+          <div class="mode-scene"><img class="mode-illustration" src="assets/pixel/mode-${m.id}.png" alt="Escenario de ${esc(m.title)}" loading="lazy"><span class="mode-illustration-mark">${m.icon}</span><span class="arcade-level">NIVEL ${String(m.day).padStart(2,'0')}</span></div>
+          <div class="mode-body"><h3>${esc(m.title)}</h3><span class="mode-desc">${esc(m.subtitle)}</span><div class="mode-bottom"><span>${locked?'🔒 Bloqueado':completed?'✓ Completado':'▶ JUGAR'}</span><strong>${completed?Number(state.scores[m.id]).toLocaleString('es-CO')+' PT':'1.000 PT'}</strong></div></div>
+        </button>`}).join('')}</section>
+      <div class="arcade-lower">
+        <section class="arcade-panel quest-panel"><div class="arcade-panel-head"><div><span class="section-kicker">REGISTRO DE AVENTURAS</span><h3>Tu progreso de la semana</h3></div><span class="quest-progress">${done}/5 COMPLETADOS</span></div>
+          <div class="arcade-meter"><span style="width:${done*20}%"></span></div>
+          <div class="quest-steps">${D.modes.map(m=>`<div class="quest-step ${state.scores[m.id]!==undefined?'done':''}"><div>${state.scores[m.id]!==undefined?'✓':m.day}</div><span>${esc(m.title)}</span></div>`).join('')}</div>
+          <div class="next-quest"><span>PRÓXIMA MISIÓN</span><strong>${esc(next.title)}</strong><button type="button" id="nextGame" class="btn btn-blue btn-sm">IR AL RETO ↗</button></div>
+        </section>
+        <section class="arcade-panel leaderboard-panel"><div class="arcade-panel-head"><div><span class="section-kicker">SALÓN DE LA FAMA</span><h3>Tabla de campeones</h3></div><span class="pixel-trophy">🏆</span></div>
+          <div id="hubRanking" class="empty-state">Consultando jugadores…</div><button type="button" class="btn btn-outline btn-sm" id="moreRanking">VER CLASIFICACIÓN COMPLETA ↗</button>
+        </section>
+      </div>
+      <div class="arcade-footer-note">ARTE PIXEL: SUPERRETRO RANCH FREE TIER, GIF · SEIS VARIANTES DE VESTUARIO GENERADAS A PARTIR DEL PERSONAJE ORIGINAL · PARTICIPACIÓN INTERNA NO COMERCIAL</div>
     </div>`;
-    $('#heroAction').addEventListener('click',()=>{if(!state.player)openRegistration();else $('#modeCards').scrollIntoView({behavior:'smooth',block:'center'})});
-    $('#heroRanking').onclick=renderRanking;$('#heroSprites').onclick=showSpriteGallery;$('#moreRanking').onclick=renderRanking;if($('#editAvatarBtn'))$('#editAvatarBtn').onclick=openWardrobe;if($('#heroAvatar'))avatarOnCanvas($('#heroAvatar'),state.player.avatar||state.avatar);
-    $$('.mode-card').forEach(b=>b.addEventListener('click',()=>startMode(b.dataset.mode)));
+    $('#heroAction').onclick=()=>{if(!state.player)openRegistration();else $('#modeCards').scrollIntoView({behavior:'smooth',block:'center'})};
+    $('#heroRanking').onclick=renderRanking;$('#heroProfile').onclick=()=>state.player?openWardrobe():openRegistration();
+    $('#moreRanking').onclick=renderRanking;$('#arcadeGallery').onclick=showSpriteGallery;
+    $('#nextGame').onclick=()=>startMode(next.id);
+    $$('.mode-card').forEach(b=>b.onclick=()=>startMode(b.dataset.mode));
+    const chars=window.EI_CHARACTERS;
+    if(chars){chars.animate($('#mainAvatarCanvas'),avatar);const profileCanvas=$('#profileCanvas');if(!chars.draw(profileCanvas,avatar)){const repaint=()=>{if(profileCanvas.isConnected)chars.draw(profileCanvas,avatar)};window.addEventListener('ei-character-ready',repaint,{once:true})}}
     drawHero();loadHubRanking();
   }
   async function loadHubRanking(){try{const x=state.remote?(await api('rankings')).rankings:rankFromDemo();if(!$('#hubRanking'))return;const first=x.slice(0,3);$('#hubRanking').outerHTML=first.length?`<table class="team-rank-table"><thead><tr><th>#</th><th>Jugador / Área</th><th>PTS</th></tr></thead><tbody>${first.map((r,i)=>`<tr><td>${['🥇','🥈','🥉'][i]}</td><td><b>${esc(r.alias)}</b><br><small class="text-muted">${esc(r.area)}</small></td><td>${r.total.toLocaleString('es-CO')}</td></tr>`).join('')}</tbody></table>`:`<div id="hubRanking" class="empty-state">Todavía no hay puntajes. ¡Puedes ser la primera persona en clasificar!</div>`}catch(_){if($('#hubRanking'))$('#hubRanking').textContent='No se pudo cargar la clasificación.'}}
@@ -93,15 +119,12 @@
     const canvas=$('#heroCanvas');if(!canvas)return;
     const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
     const bg=new Image();
-    bg.onload=()=>{if(!canvas.isConnected)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(bg,0,0,canvas.width,canvas.height);
-      const original=spriteUrl('characters/males/male_01/idle/male_01_hat_idle_32x32.png');
-      if(original){const person=new Image();person.onload=()=>{if(canvas.isConnected){ctx.imageSmoothingEnabled=false;ctx.drawImage(person,0,0,32,32,266,176,64,64);}};person.src=original;}
-    };
+    bg.onload=()=>{if(!canvas.isConnected)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(bg,0,0,canvas.width,canvas.height);};
     bg.onerror=()=>{ctx.fillStyle='#1b426e';ctx.fillRect(0,0,canvas.width,canvas.height)};
     bg.src='assets/pixel/campus-ei.png';
   }
   const spriteAvatarCache={};
-  function avatarOnCanvas(canvas,opt=state.avatar){if(!canvas)return;const g=canvas.getContext('2d');canvas.width=24;canvas.height=28;g.imageSmoothingEnabled=false;g.clearRect(0,0,24,28);
+  function avatarOnCanvas(canvas,opt=state.avatar){if(!canvas)return; if(window.EI_CHARACTERS?.draw(canvas,opt,'idle'))return;const g=canvas.getContext('2d');canvas.width=24;canvas.height=28;g.imageSmoothingEnabled=false;g.clearRect(0,0,24,28);
     if((opt.style||'retro')==='retro'){
       const path=opt.accessory==='helmet'?'characters/males/male_01/idle/male_01_hat_idle_32x32.png':'characters/males/male_01/idle/male_01_idle_32x32.png';
       const src=spriteUrl(path);
@@ -120,36 +143,75 @@
     if(opt.accessory==='vest'){px(6,15,3,6,'#ffba39');px(15,15,3,6,'#ffba39');px(10,16,4,2,'#d7faff')}
     px(11,18,2,2,'#ffdb67')
   }
-  function openRegistration(){const opts=state.avatar;$('#modalRoot').innerHTML=`<div class="modal-backdrop" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="regTitle">
-     <div class="modal-header"><h2 id="regTitle">✦ Crea tu personaje</h2><button id="closeModal" class="close-modal" aria-label="Cerrar">×</button></div>
-     <div class="modal-body"><div class="reg-grid"><div><div class="avatar-frame"><canvas id="avatarPreview" width="24" height="28" aria-label="Previsualización de personaje"></canvas></div><p class="modal-helper">El estilo Retro muestra tu personaje con el sprite original del paquete; el estilo EI permite personalizar colores y peinado.</p></div>
-     <form id="registerForm"><div class="custom-grid"><div class="field"><label for="regName">Nombre completo</label><input id="regName" placeholder="Tu nombre y apellido" maxlength="80" minlength="4" required></div><div class="field"><label for="regAlias">Nombre de jugador</label><input id="regAlias" placeholder="Ej. PixelJuan" maxlength="24" minlength="3" required></div></div>
-     <div class="field"><label for="regArea">Área de trabajo</label><select id="regArea" required><option value="">Selecciona tu área</option>${D.areas.map(a=>`<option>${esc(a)}</option>`).join('')}</select></div>
-     <div class="field"><label for="avStyle">Estilo de avatar</label><select id="avStyle" data-avatar="style"><option value="retro">Sprite original SuperRetroRanch</option><option value="ei">Personaje EI personalizable</option></select></div>
-     <div class="custom-grid"><div class="field"><label for="avSkin">Tono de piel</label><select id="avSkin" data-avatar="skin">${['Claro','Trigueño claro','Trigueño','Moreno','Oscuro'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
-       <div class="field"><label for="avHair">Peinado</label><select id="avHair" data-avatar="hair">${['Corto','Alto','Largo','Lateral'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
-       <div class="field"><label for="avHairColor">Color de cabello</label><select id="avHairColor" data-avatar="hairColor">${['Castaño oscuro','Castaño claro','Negro azulado','Rubio'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
-       <div class="field"><label for="avShirt">Uniforme</label><select id="avShirt" data-avatar="shirt">${['Azul EI','Naranja','Blanco','Violeta'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div></div>
-     <div class="field"><label for="avAccessory">Accesorio</label><select id="avAccessory" data-avatar="accessory"><option value="helmet">Casco de seguridad</option><option value="glasses">Gafas</option><option value="headphones">Auriculares</option><option value="vest">Chaleco reflectivo</option><option value="none">Sin accesorio</option></select></div>
-     <p class="modal-helper">${state.remote?'Al registrarte obtendrás una clave para recuperar tu personaje. Por seguridad, guárdala.':'Esta versión de demostración guarda tu partida únicamente en el navegador.'}</p>${state.remote?'<button type="button" id="recoverBtn" class="btn btn-outline btn-sm">¿Ya tienes un personaje? Recuperar cuenta</button>':''}<div id="regError" class="modal-error" role="alert"></div>
-     <div class="reg-bottom"><button type="button" id="cancelReg" class="btn btn-outline">Cancelar</button><button type="submit" id="submitReg" class="btn btn-primary">✦ COMENZAR AVENTURA</button></div></form></div></div></div></div>`;
-    avatarOnCanvas($('#avatarPreview'));
-    if($('#recoverBtn'))$('#recoverBtn').onclick=openRecovery;
-    $$('[data-avatar]').forEach(e=>{e.value=String(opts[e.dataset.avatar]);e.onchange=()=>{opts[e.dataset.avatar]=e.value;avatarOnCanvas($('#avatarPreview'));sound()}});
-    const close=()=>$('#modalRoot').innerHTML='';$('#closeModal').onclick=close;$('#cancelReg').onclick=close;$('#registerForm').onsubmit=async e=>{e.preventDefault();const name=$('#regName').value.trim(),alias=$('#regAlias').value.trim(),area=$('#regArea').value;
-       if(name.length<4||alias.length<3||!D.areas.includes(area)){ $('#regError').textContent='Completa tu nombre, alias y área.';return}
-       const b=$('#submitReg');b.disabled=true;b.textContent='REGISTRANDO…';try{const r=await register({name,alias,area,avatar:{...opts}});close();renderHeader();renderHub();sound('win');if(state.remote&&r.access_key){showCredential(r.access_key,r.player.id)}}catch(err){$('#regError').textContent=err.message;b.disabled=false;b.textContent='✦ COMENZAR AVENTURA'}
-    }
+  function renderCharacterSelect(editing=false){
+    if(window.EI_GAMES)window.EI_GAMES.cleanup();
+    const C=window.EI_CHARACTERS,roles=C.presets;
+    const current={...state.avatar,...(state.player?.avatar||{})};
+    if(!roles.some(p=>p.id===current.preset))current.preset=roles[0].id;
+    if(current.skin===undefined)current.skin=0;
+    const picked=()=>roles.find(r=>r.id===current.preset)||roles[0];
+    $('#view').innerHTML=`<section class="character-view">
+      <nav class="game-breadcrumb"><button type="button" id="characterBack">← VOLVER AL CAMPAMENTO</button><span>/</span><span>${editing?'MI PERSONAJE':'NUEVO PARTICIPANTE'}</span></nav>
+      <div class="character-title"><div><span class="section-kicker">✦ SALA DE PERSONAJES</span><h1>${editing?'Personaliza tu héroe':'Elige tu personaje'}</h1><p>Seis estilos con paletas de uniforme, accesorios y animaciones reales del paquete pixel art.</p></div><div class="character-counter">06 <span>AVATARES</span></div></div>
+      <div class="character-content">
+        <div class="character-roster" id="characterRoster" role="group" aria-label="Selecciona un personaje">${roles.map((r,i)=>`<button type="button" class="character-choice ${r.id===current.preset?'selected':''}" data-character="${r.id}" style="--role:${r.color}" aria-pressed="${r.id===current.preset}">
+           <span class="character-choice-art"><canvas width="75" height="75" data-preview="${r.id}" aria-hidden="true"></canvas></span><span class="character-choice-info"><strong>${esc(r.name)}</strong><small>${esc(r.role)}</small></span><span class="choice-check">✓</span>
+         </button>`).join('')}</div>
+        <div class="character-preview-panel"><div class="scene-label"><span>● PERSONAJE SELECCIONADO</span><span id="roleCode">01 / 06</span></div>
+          <div class="character-landscape"><span class="landscape-sun"></span><span class="landscape-hill"></span><span class="character-floor"></span><canvas id="rosterHero" width="160" height="160" aria-label="Previsualización animada del personaje seleccionado"></canvas></div>
+          <div class="character-caption"><h2 id="roleName"></h2><p id="roleDesc"></p><span class="character-description">PERSONAJE PIXEL ORIGINAL + VARIANTE DE VESTUARIO</span></div>
+          <div class="skin-selector"><span>TONO DEL PERSONAJE</span><div id="skinButtons">${C.palettes.map((x,i)=>`<button type="button" class="skin-swatch ${Number(current.skin)===i?'active':''}" data-skin="${i}" aria-label="Tono ${i+1}" aria-pressed="${Number(current.skin)===i}" style="--skin:${x.skin}"></button>`).join('')}</div></div>
+          <label class="hat-toggle"><input type="checkbox" id="characterHat"> Usar sombrero retro</label>
+        </div>
+        <form class="character-register" id="characterForm"><span class="section-kicker">${editing?'EDITAR VESTUARIO':'CREAR PARTICIPANTE'}</span><h2>${editing?'Guardar apariencia':'Completa tu registro'}</h2>
+          ${editing?`<div class="registered-name"><small>JUGADOR</small><strong>${esc(state.player.alias)}</strong><span>${esc(state.player.area)}</span></div>`:`<div class="field"><label for="regName">Nombre completo</label><input id="regName" maxlength="80" minlength="4" required placeholder="Nombre y apellido" autocomplete="name"></div>
+           <div class="field"><label for="regAlias">Alias de jugador</label><input id="regAlias" maxlength="24" minlength="3" required placeholder="Ej. PixelJuan" autocomplete="nickname"></div>
+           <div class="field"><label for="regArea">Área de trabajo</label><select id="regArea" required><option value="">Selecciona el área</option>${D.areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select></div>`}
+          <div class="register-reminder"><span>✦</span><p>${editing?'Los cambios de vestuario no modifican tu puntuación.':'Tu personaje participará en los cinco retos y aparecerá en tu perfil.'}</p></div>
+          <p class="modal-helper">Los seis estilos usan el personaje disponible en SuperRetroRanch Free Tier; las variaciones de colores y sombrero se aplican dentro del videojuego.</p>
+          <div class="modal-error" id="characterError" role="alert"></div>
+          <button class="btn btn-primary character-submit" id="characterSubmit" type="submit">${editing?'✓ GUARDAR PERSONAJE':'▶ COMENZAR AVENTURA'}</button>
+        </form>
+      </div></section>`;
+    let stopAnimation=()=>{};
+    const preview=$('#rosterHero');
+    const rerenderPortraits=()=>{if(!$('#characterRoster'))return;$$('[data-preview]').forEach(canvas=>C.draw(canvas,{...current,preset:canvas.dataset.preview,hat:roles.find(x=>x.id===canvas.dataset.preview).hat},'idle'))};
+    window.addEventListener('ei-character-ready',rerenderPortraits);
+    const cleanupSelect=()=>{stopAnimation();window.removeEventListener('ei-character-ready',rerenderPortraits)};
+    const update=()=>{
+      const p=picked(),pIndex=roles.indexOf(p);
+      $$('.character-choice').forEach(b=>{const selected=b.dataset.character===p.id;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected))});
+      $$('.skin-swatch').forEach(b=>{const selected=Number(b.dataset.skin)===Number(current.skin);b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});
+      $('#roleName').textContent=p.name;$('#roleDesc').textContent=p.desc;
+      $('#roleCode').textContent=String(pIndex+1).padStart(2,'0')+' / 06';
+      $('#characterHat').checked=current.hat!==undefined?Boolean(current.hat):p.hat;
+      stopAnimation();stopAnimation=C.animate(preview,current);
+      rerenderPortraits();
+    };
+    $$('.character-choice').forEach(b=>b.onclick=()=>{const p=roles.find(x=>x.id===b.dataset.character);current.preset=p.id;current.hat=p.hat;update();sound()});
+    $$('.skin-swatch').forEach(b=>b.onclick=()=>{current.skin=Number(b.dataset.skin);update();sound()});
+    $('#characterHat').onchange=e=>{current.hat=e.target.checked;update()};
+    $('#characterBack').onclick=()=>{cleanupSelect();renderHub()};
+    $('#characterForm').onsubmit=async e=>{
+      e.preventDefault();const save=$('#characterSubmit');save.disabled=true;save.textContent='GUARDANDO…';
+      const avatar={skin:current.skin,hair:current.hair||0,hairColor:current.hairColor||0,shirt:current.shirt||0,accessory:current.hat?'helmet':'none',style:'retro',preset:current.preset,hat:current.hat};
+      try{
+        if(editing){
+          if(state.remote){const result=await api('avatar',{id:state.player.id,access_key:credentials().access_key,avatar});state.player=result.player}
+          else{const data=demoData(),player=data.players.find(x=>x.id===state.player.id);if(player){player.avatar=avatar;saveDemo(data)}state.player.avatar=avatar}
+          state.avatar={...avatar};cleanupSelect();renderHeader();renderHub();toast('Personaje actualizado');
+        } else {
+          const name=$('#regName').value.trim(),alias=$('#regAlias').value.trim(),area=$('#regArea').value;
+          if(name.length<4||alias.length<3||!D.areas.includes(area))throw Error('Completa tu nombre, alias y área.');
+          const result=await register({name,alias,area,avatar});state.avatar={...avatar};cleanupSelect();renderHeader();renderHub();sound('win');
+          if(state.remote&&result.access_key)showCredential(result.access_key,result.player.id);
+        }
+      }catch(err){$('#characterError').textContent=err.message;save.disabled=false;save.textContent=editing?'✓ GUARDAR PERSONAJE':'▶ COMENZAR AVENTURA';}
+    };
+    update();window.scrollTo({top:0,behavior:'smooth'});
   }
-  function openWardrobe(){
-    if(!state.player)return;
-    const a={...state.avatar,...(state.player.avatar||{})};
-    const options=(items,key)=>items.map((label,i)=>`<option value="${i}" ${String(a[key])===String(i)?'selected':''}>${label}</option>`).join('');
-    $('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" style="max-width:650px" role="dialog" aria-modal="true"><div class="modal-header"><h2>🎨 Tu vestuario pixel</h2><button id="closeWardrobe" class="close-modal" aria-label="Cerrar">×</button></div><div class="modal-body"><div class="reg-grid"><div><div class="avatar-frame"><canvas id="avatarPreview" width="24" height="28"></canvas></div></div><div><div class="field"><label>Estilo de personaje</label><select data-avatar="style"><option value="retro" ${a.style==='retro'||!a.style?'selected':''}>SuperRetroRanch original</option><option value="ei" ${a.style==='ei'?'selected':''}>EI personalizable</option></select></div><div class="field"><label>Peinado</label><select data-avatar="hair">${options(['Corto','Alto','Largo','Lateral'],'hair')}</select></div><div class="field"><label>Color de cabello</label><select data-avatar="hairColor">${options(['Castaño oscuro','Castaño claro','Negro azulado','Rubio'],'hairColor')}</select></div><div class="field"><label>Tono de piel</label><select data-avatar="skin">${options(['Claro','Trigueño claro','Trigueño','Moreno','Oscuro'],'skin')}</select></div><div class="field"><label>Uniforme</label><select data-avatar="shirt">${options(['Azul EI','Naranja','Blanco','Violeta'],'shirt')}</select></div><div class="field"><label>Accesorio</label><select data-avatar="accessory">${['helmet','glasses','headphones','vest','none'].map((v,i)=>`<option value="${v}" ${a.accessory===v?'selected':''}>${['Casco de seguridad','Gafas','Auriculares','Chaleco reflectivo','Sin accesorio'][i]}</option>`).join('')}</select></div></div></div><div id="wardrobeError" class="modal-error"></div><div class="reg-bottom"><button id="saveWardrobe" class="btn btn-primary">GUARDAR PERSONAJE</button></div></div></div></div>`;
-    const repaint=()=>avatarOnCanvas($('#avatarPreview'),a);repaint();
-    $$('[data-avatar]').forEach(e=>e.onchange=()=>{a[e.dataset.avatar]=e.value;repaint()});$('#closeWardrobe').onclick=()=>$('#modalRoot').innerHTML='';
-    $('#saveWardrobe').onclick=async()=>{try{if(state.remote){const r=await api('avatar',{id:state.player.id,access_key:credentials().access_key,avatar:a});state.player=r.player}else{const d=demoData(),p=d.players.find(x=>x.id===state.player.id);if(p){p.avatar=a;saveDemo(d)}state.player.avatar=a}state.avatar={...a};$('#modalRoot').innerHTML='';renderHeader();renderHub();toast('Avatar actualizado')}catch(err){$('#wardrobeError').textContent=err.message}};
-  }
+  function openRegistration(){renderCharacterSelect(false)}
+  function openWardrobe(){if(state.player)renderCharacterSelect(true)}
   function openRecovery(){
     $('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" style="max-width:540px" role="dialog" aria-modal="true"><div class="modal-header"><h2>↩ Recuperar personaje</h2><button id="closeRecovery" class="close-modal">×</button></div><div class="modal-body"><p class="modal-helper">Introduce el identificador y la clave que guardaste al registrarte.</p><form id="recoveryForm"><div class="field"><label for="recoverId">Identificador de jugador</label><input id="recoverId" required placeholder="ID de jugador"></div><div class="field"><label for="recoverKey">Clave de recuperación</label><input id="recoverKey" required placeholder="Tu clave privada" type="password"></div><div id="recoveryError" class="modal-error"></div><div class="reg-bottom"><button type="button" id="backRecovery" class="btn btn-outline">Volver</button><button type="submit" class="btn btn-primary">RECUPERAR</button></div></form></div></div></div>`;
     $('#closeRecovery').onclick=()=>$('#modalRoot').innerHTML='';$('#backRecovery').onclick=openRegistration;

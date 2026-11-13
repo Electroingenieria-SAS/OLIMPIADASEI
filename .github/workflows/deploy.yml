@@ -32,6 +32,12 @@ jobs:
           test -s dist/index.html
           test -s dist/js/games.js
           test -s dist/js/app.js
+          test -s dist/js/characters.js
+          test -s dist/css/arcade.css
+          test -s dist/assets/superretro/gamepack.bin
+          node --check dist/js/characters.js
+          node --check dist/js/app.js
+          node --check dist/js/games.js
           test -s dist/js/sprites.js
           test -s dist/assets/superretro/gamepack.bin
           test -s dist/assets/superretro/manifest.json

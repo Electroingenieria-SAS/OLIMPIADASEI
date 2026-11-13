@@ -39,3 +39,30 @@ python -m http.server 8000
 Abrir http://localhost:8000. Para descifrar y mostrar el paquete se necesita `localhost` o HTTPS, navegador moderno y soporte para WebCrypto + `DecompressionStream`.
 
 **Nota de competencia:** GitHub Pages es hosting estático. El ranking actual es una **demostración local** (almacenamiento del navegador). Para premiar por áreas se necesita backend compartido (Supabase o equivalente) y puntuación validada en servidor. El PHP de `server-php/` no se despliega a Pages.
+
+
+## Edición arcade · selección de personajes (noviembre de 2026)
+
+El vestuario incluye **seis variantes seleccionables** basadas en el único personaje
+`male_01` disponible como PNG jugable en **SuperRetroRanch Free Tier v35**:
+Explorador, Inspector, Transportista, Vigía, Tecno y Estratega. Los colores
+de uniforme y tono de piel se aplican en Canvas en tiempo de ejecución;
+se mantiene la opción de sombrero y las animaciones reales del paquete.
+
+Las imágenes JPG de la carpeta `assets_premium_preview/` no son personajes
+utilizables de la edición gratuita y no se distribuyen como sprites.
+
+Las configuraciones del jugador se almacenan con `avatar.preset`, `avatar.skin`
+y `avatar.hat`. En la versión estática de GitHub Pages se guardan localmente,
+y el adaptador PHP conserva esos campos cuando se usa un servidor compatible.
+
+### Interfaz
+
+La edición incorpora vestuario a pantalla completa, campamento pixel,
+cinco niveles con progresión visual, resultados y ranking por áreas.
+El gráfico original del campus y el paquete cifrado de 53 PNG gratuitos se
+conservan, sin hacer pasar las previsualizaciones premium por nuevos personajes.
+
+Crédito de los sprites base: **Gif – SuperRetroRanch Free Tier**.
+Uso previsto: actividad interna no comercial; revise las condiciones del
+licenciante antes de redistribuir el código o el paquete de recursos.
