@@ -1,40 +1,41 @@
-# Olimpiadas EI Pixel
+# Olimpiadas EI Pixel — Electroingeniería
 
-Juego web institucional de Electroingeniería: cinco minijuegos pixel art (agilidad mental, memoria, caso explorable, lógica y conocimiento). Incluye avatar personalizable, registro, clasificación y preguntas de cultura de calidad, SST, auditoría, ciberseguridad, matemáticas y logística.
+Juego institucional de cinco retos: agilidad mental, memoria, caso explorable, lógica y conocimiento. Incluye registro, avatar, exploración de escenarios, preguntas de SST, calidad documental, auditoría, ciberseguridad, matemáticas y logística.
 
-## Ver el juego
+**Jugar:** https://electroingenieria-sas.github.io/OLIMPIADASEI/
 
-Una vez activo GitHub Pages (Settings → Pages → Source: **GitHub Actions**), la URL prevista es:
+## Uso real del paquete SuperRetroRanch Free Tier
 
-https://electroingenieria-sas.github.io/OLIMPIADASEI/
+Se usan los **53 archivos PNG utilizables** del ZIP que aportó el equipo. Los miles de `.jpg` de `assets_premium_preview` son **vistas previas premium**, no los sprites PNG del nivel gratuito y no se publican.
 
-Cada actualización a `main` publica automáticamente con `.github/workflows/deploy.yml`.
+Para cumplir la prohibición de redistribuir las imágenes como archivos independientes, los 53 originales se empaquetan en `assets/superretro/gamepack.bin` (gzip + AES-GCM del lado del cliente). La aplicación carga el paquete con `js/sprites.js` y convierte sus recursos en imágenes pixel art. **No es DRM ni garantiza que no se puedan extraer**; es una medida organizativa para evitar entregar el conjunto como 53 PNG independientes.
 
-## Modo disponible en GitHub Pages
+Los sprites se usan en:
 
-**Demostración local**. Los participantes y puntajes se guardan en el navegador mediante `localStorage`, **NO** se comparten con otros empleados ni pueden usarse como ranking válido para premios. Es un prototipo para probar mecánicas de juego. El modo PHP del prototipo original se incluye en `server-php/`, pero **NO** funciona en GitHub Pages ni se publica como contenido web.
+- Galería **VER MIS 53 SPRITES** disponible desde la pantalla de inicio (se muestran todos los recursos del nivel gratuito y su nombre original).
+- Creación de personaje: elección entre el avatar auténtico de SuperRetroRanch y el avatar EI con colores personalizables.
+- Protagonista y compañero de la escena explorable con el sprite real de caminar.
+- Escenarios del campus y las cinco tarjetas de retos, creados con elementos del paquete.
+- Ocho fichas del juego de memoria, con iconos del paquete original.
+- Vegetación y detalles de entorno en el escenario explorable.
 
-Para una competencia corporativa entre áreas: crear un backend compartido seguro (ejemplo: Supabase con Edge Functions y Postgres), identidad laboral, control de intentos, fechas y puntuación calculada del lado del servidor antes de habilitar premios. No configurar claves privadas en archivos JavaScript.
+El archivo `assets/superretro/manifest.json` enumera los 53 nombres de origen. Para recompilar el paquete **internamente** se requiere colocar los PNG originales en `assets/superretro` siguiendo su estructura y ejecutar:
 
-## Licencia de recursos
+```bash
+python -m pip install cryptography
+python tools/build_superretro_pack.py
+```
 
-- Los logos de Electroingeniería fueron entregados por la organización y se muestran sin redibujar su marca.
-- Los sprites `character-idle.png`, `character-walk.png`, `ground-tiles.png` y los escenarios de `assets/pixel/` son **originales del proyecto**. Los nuevos escenarios incluyen campus EI, cinco minijuegos y un atlas de 8 mosaicos para la bodega. El generador reproducible está en `tools/generate_art.py` (requiere Pillow).
-- Se revisó el archivo `SuperRetroRanch_FreeTier_v35(1).zip`: contiene 53 sprites PNG en `assets/` y miles de vistas previas premium en `assets_premium_preview/`. Su licencia Free Tier permite **uso no comercial** y prohíbe **redistribuir** los archivos originales o modificados; por ello **no se suben** a este repositorio público ni se incluyen en GitHub Pages. Para utilizarlos efectivamente en este juego empresarial hace falta una licencia o autorización que cubra el uso y el despliegue.
+El autor de los recursos es **Gif — SuperRetroRanch**. Licencia *Free Tier*: uso no comercial, modificaciones permitidas, prohibida la redistribución directa y la venta de sprites. Se debe confirmar que la política interna de uso y distribución del proyecto sea compatible con la licencia. Los logos de Electroingeniería se mantienen intactos.
 
-## Ejecución local
+## Despliegue GitHub Actions / Pages
+
+El workflow `.github/workflows/deploy.yml` construye un directorio `dist` con HTML, CSS, JavaScript y assets, y lo publica automáticamente en GitHub Pages tras un push a `main`.
 
 ```bash
 python -m http.server 8000
 ```
 
-Abrir http://localhost:8000. En un hosting PHP separado puede implementarse posteriormente un backend de competencia real.
+Abrir http://localhost:8000. Para descifrar y mostrar el paquete se necesita `localhost` o HTTPS, navegador moderno y soporte para WebCrypto + `DecompressionStream`.
 
-## Renovación visual (13 de noviembre de 2026)
-
-- Escenario principal original de un campus industrial pixel art con oficina, bodega y colaboradores.
-- Ilustraciones originales para los cinco retos; las imágenes sustituyen los iconos gigantes en las tarjetas.
-- Mapa de caso explorable renderizado desde `assets/pixel/case-tiles.png`, con fallback para errores de carga.
-- Los logos institucionales siguen siendo los originales, sin redibujarlos.
-- Arte fuente reproducible: `python -m pip install pillow && python tools/generate_art.py`.
-- **No modifica** el modo demostración ni incorpora un backend compartido de clasificación.
+**Nota de competencia:** GitHub Pages es hosting estático. El ranking actual es una **demostración local** (almacenamiento del navegador). Para premiar por áreas se necesita backend compartido (Supabase o equivalente) y puntuación validada en servidor. El PHP de `server-php/` no se despliega a Pages.

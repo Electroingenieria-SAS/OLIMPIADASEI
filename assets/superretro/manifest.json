@@ -1,0 +1,277 @@
+{
+  "format": "EISR2",
+  "sprite_count": 53,
+  "groups": [
+    "Cultivos e iconos",
+    "Objetos de escenario",
+    "Personajes y animaciones",
+    "Terreno y escenarios"
+  ],
+  "sprites": [
+    {
+      "id": "characters__males__male_01__hoe__male_01_hat_hoe_32x32_3frames",
+      "source_file": "characters/males/male_01/hoe/male_01_hat_hoe_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__hoe__male_01_hoe_32x32_3frames",
+      "source_file": "characters/males/male_01/hoe/male_01_hoe_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__idle__male_01_hat_idle_32x32",
+      "source_file": "characters/males/male_01/idle/male_01_hat_idle_32x32.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__idle__male_01_idle_32x32",
+      "source_file": "characters/males/male_01/idle/male_01_idle_32x32.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__shovel__male_01_hat_shovel_32x32_3frames",
+      "source_file": "characters/males/male_01/shovel/male_01_hat_shovel_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__shovel__male_01_shovel_32x32_3frames",
+      "source_file": "characters/males/male_01/shovel/male_01_shovel_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__walk__male_01_hat_walk_32x32_3frames",
+      "source_file": "characters/males/male_01/walk/male_01_hat_walk_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__walk__male_01_walk_32x32_3frames",
+      "source_file": "characters/males/male_01/walk/male_01_walk_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__water__male_01_hat_water_32x32_3frames",
+      "source_file": "characters/males/male_01/water/male_01_hat_water_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "characters__males__male_01__water__male_01_water_32x32_3frames",
+      "source_file": "characters/males/male_01/water/male_01_water_32x32_3frames.png",
+      "group": "Personajes y animaciones"
+    },
+    {
+      "id": "crops__bamboo__growth_basic__bamboo_16x32_7frames",
+      "source_file": "crops/bamboo/growth_basic/bamboo_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__bamboo__icon__bamboo_icon_16x16_2frames",
+      "source_file": "crops/bamboo/icon/bamboo_icon_16x16_2frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__beetroot__growth_basic__beetroot_16x16_7frames",
+      "source_file": "crops/beetroot/growth_basic/beetroot_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__beetroot__icon__beetroot_icon_16x16",
+      "source_file": "crops/beetroot/icon/beetroot_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__berry__growth_basic__berry_16x16_7frames",
+      "source_file": "crops/berry/growth_basic/berry_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__berry__icon__berry_icon_16x16",
+      "source_file": "crops/berry/icon/berry_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__broccoli__growth_basic__broccoli_16x32_7frames",
+      "source_file": "crops/broccoli/growth_basic/broccoli_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__broccoli__icon__broccoli_icon_16x16",
+      "source_file": "crops/broccoli/icon/broccoli_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__carrot__growth_basic__carrot_16x16_7frames",
+      "source_file": "crops/carrot/growth_basic/carrot_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__carrot__icon__carrot_icon_16x16_2frames",
+      "source_file": "crops/carrot/icon/carrot_icon_16x16_2frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__cauliflower__growth_basic__cauliflower_16x16_7frames",
+      "source_file": "crops/cauliflower/growth_basic/cauliflower_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__cauliflower__icon__cauliflower_icon_16x16",
+      "source_file": "crops/cauliflower/icon/cauliflower_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__celery__growth_basic__celery_16x32_7frames",
+      "source_file": "crops/celery/growth_basic/celery_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__celery__icon__celery_icon_16x16",
+      "source_file": "crops/celery/icon/celery_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__corn__growth_basic__corn_16x32_8frames",
+      "source_file": "crops/corn/growth_basic/corn_16x32_8frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__corn__icon__corn_icon_16x16_2frames",
+      "source_file": "crops/corn/icon/corn_icon_16x16_2frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__eggplant__growth_basic__eggplant_16x32_7frames",
+      "source_file": "crops/eggplant/growth_basic/eggplant_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__eggplant__icon__eggplant_icon_16x16",
+      "source_file": "crops/eggplant/icon/eggplant_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__grape__growth_basic__grape_18x32_7frames",
+      "source_file": "crops/grape/growth_basic/grape_18x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__grape__icon__grape_icon_16x16_2frames",
+      "source_file": "crops/grape/icon/grape_icon_16x16_2frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__leek__growth_basic__leek_16x32_7frames",
+      "source_file": "crops/leek/growth_basic/leek_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__leek__icon__leek_icon_16x16",
+      "source_file": "crops/leek/icon/leek_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__lettuce__growth_basic__lettuce_16x16_7frames",
+      "source_file": "crops/lettuce/growth_basic/lettuce_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__lettuce__icon__lettuce_icon_16x16",
+      "source_file": "crops/lettuce/icon/lettuce_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__onion__growth_basic__onion_16x32_7frames",
+      "source_file": "crops/onion/growth_basic/onion_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__onion__icon__onion_icon_16x16",
+      "source_file": "crops/onion/icon/onion_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__pepper__growth_basic__pepper_16x32_11frames",
+      "source_file": "crops/pepper/growth_basic/pepper_16x32_11frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__pepper__icon__pepper_icon_16x16_2frames",
+      "source_file": "crops/pepper/icon/pepper_icon_16x16_2frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__potato__growth_basic__potato_16x32_7frames",
+      "source_file": "crops/potato/growth_basic/potato_16x32_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__potato__icon__potato_icon_16x16",
+      "source_file": "crops/potato/icon/potato_icon_16x16.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__pumpkin__growth_basic__pumpkin_16x16_7frames",
+      "source_file": "crops/pumpkin/growth_basic/pumpkin_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__pumpkin__icon__pumpkin_icon_16x16_3frames",
+      "source_file": "crops/pumpkin/icon/pumpkin_icon_16x16_3frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__radish__growth_basic__radish_16x16_7frames",
+      "source_file": "crops/radish/growth_basic/radish_16x16_7frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__radish__icon__radish_icon_16x16_2frames",
+      "source_file": "crops/radish/icon/radish_icon_16x16_2frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__tallgrass__growth_basic__tallgrass_16x32_6frames",
+      "source_file": "crops/tallgrass/growth_basic/tallgrass_16x32_6frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__tomato__growth_basic__tomato_16x32_23frames",
+      "source_file": "crops/tomato/growth_basic/tomato_16x32_23frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__tomato__icon__tomato_icon_16x16_4frames",
+      "source_file": "crops/tomato/icon/tomato_icon_16x16_4frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__wheat__growth_basic__wheat_18x32_8frames",
+      "source_file": "crops/wheat/growth_basic/wheat_18x32_8frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "crops__wheat__icon__wheat_icon_16x16_9frames",
+      "source_file": "crops/wheat/icon/wheat_icon_16x16_9frames.png",
+      "group": "Cultivos e iconos"
+    },
+    {
+      "id": "objects__objects_01_16x16",
+      "source_file": "objects/objects_01_16x16.png",
+      "group": "Objetos de escenario"
+    },
+    {
+      "id": "tiles__fence_01_16x16",
+      "source_file": "tiles/fence_01_16x16.png",
+      "group": "Terreno y escenarios"
+    },
+    {
+      "id": "tiles__ground_01_16x16",
+      "source_file": "tiles/ground_01_16x16.png",
+      "group": "Terreno y escenarios"
+    },
+    {
+      "id": "tiles__tree_01_16x16",
+      "source_file": "tiles/tree_01_16x16.png",
+      "group": "Terreno y escenarios"
+    }
+  ]
+}

@@ -3,3 +3,8 @@ storage/players.db.php
 .DS_Store
 .env*
 node_modules/
+# Los PNG originales se usan como insumo local de la compilación y NO se publican como assets sueltos.
+assets/superretro/characters/
+assets/superretro/crops/
+assets/superretro/tiles/
+assets/superretro/objects/

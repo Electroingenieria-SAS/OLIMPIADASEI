@@ -29,10 +29,14 @@ window.EI_DATA = {
     {topic:'Calidad',q:'Tienes dos registros con cifras distintas.',options:['Escoges el mayor','Contrastas fuentes y corriges trazabilidad','Borras uno','Los sumas'],a:1,why:'La integridad y verificación son prioritarias.'}
   ],
   memory: [
-    {id:'doc',icon:'📄',name:'Documento'}, {id:'helmet',icon:'⛑️',name:'SST'},
-    {id:'check',icon:'✅',name:'Calidad'}, {id:'lock',icon:'🔐',name:'Seguridad'},
-    {id:'box',icon:'📦',name:'Logística'}, {id:'audit',icon:'📋',name:'Auditoría'},
-    {id:'math',icon:'➕',name:'Cálculo'}, {id:'alert',icon:'⚠️',name:'Riesgo'}
+    {id:'doc',icon:'📄',name:'Documento',sprite:'crops/beetroot/icon/beetroot_icon_16x16.png'},
+    {id:'helmet',icon:'⛑️',name:'SST',sprite:'crops/carrot/icon/carrot_icon_16x16_2frames.png'},
+    {id:'check',icon:'✅',name:'Calidad',sprite:'crops/berry/icon/berry_icon_16x16.png'},
+    {id:'lock',icon:'🔐',name:'Seguridad',sprite:'crops/grape/icon/grape_icon_16x16_2frames.png'},
+    {id:'box',icon:'📦',name:'Logística',sprite:'crops/pumpkin/icon/pumpkin_icon_16x16_3frames.png'},
+    {id:'audit',icon:'📋',name:'Auditoría',sprite:'crops/corn/icon/corn_icon_16x16_2frames.png'},
+    {id:'math',icon:'➕',name:'Cálculo',sprite:'crops/pepper/icon/pepper_icon_16x16_2frames.png'},
+    {id:'alert',icon:'⚠️',name:'Riesgo',sprite:'crops/tomato/icon/tomato_icon_16x16_4frames.png'}
   ],
   caseClues: [
     {id:'document',x:3,y:3,icon:'📋',name:'Documento sin versión',desc:'Encuentras un procedimiento impreso sin código de control ni versión.',q:'¿Cuál es la mejor acción?',options:['Seguir usándolo','Confirmar el documento vigente y retirar el obsoleto','Firmarlo y archivarlo'],a:1},

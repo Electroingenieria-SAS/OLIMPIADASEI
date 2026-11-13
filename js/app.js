@@ -3,7 +3,7 @@
   const D = window.EI_DATA;
   const state = {
     remote:false,config:{lock_by_day:false},player:null,scores:{},run:null,
-    sound:false,avatar:{skin:1,hair:0,hairColor:0,shirt:0,accessory:'helmet'},
+    sound:false,avatar:{skin:1,hair:0,hairColor:0,shirt:0,accessory:'helmet',style:'retro'},
     ranking:null,areaFilter:'Todos',busy:false
   };
   const $ = (s,p=document)=>p.querySelector(s);
@@ -26,10 +26,31 @@
     // GitHub Pages no ejecuta PHP: modo demostración local, sin puntajes compartidos.
     const staticPages = /\.github\.io$/i.test(location.hostname);
     try{if(staticPages)throw Error('GitHub Pages: cliente estático');const r=await api('status');state.remote=true;state.config=r.config||{};$('#serverLabel').textContent='COMPETENCIA EN LÍNEA';$('#footerStatus').textContent='Resultados compartidos';const credentials=JSON.parse(localStorage.getItem(credsKey)||'null');if(credentials){try{const x=await api('resume',credentials);state.player=x.player;state.avatar={...state.avatar,...(x.player.avatar||{})};state.scores=x.scores||{}}catch(_){localStorage.removeItem(credsKey)}}}catch(_){state.remote=false;$('#serverLabel').textContent='MODO DEMO LOCAL';$('#footerStatus').textContent='Los puntos se guardan en este navegador';const v=demoData();const p=v.players.find(x=>x.id===v.current);if(p){state.player=p;state.scores={...p.scores}}}
+    await window.EI_SPRITES?.load();
     renderHeader();renderHub();
   }
   function renderHeader(){const e=$('#userChip');if(!state.player){e.hidden=true;e.innerHTML='';return}e.hidden=false;e.innerHTML=`<canvas id="userAvatar" class="mini-head" width="24" height="28"></canvas><span>${esc(state.player.alias)}<small>${esc(state.player.area)}</small></span>`;avatarOnCanvas($('#userAvatar'),state.player.avatar||state.avatar)}
   function total(){return Object.values(state.scores).reduce((a,b)=>a+Number(b||0),0)}
+  const spriteUrl=(path)=>window.EI_SPRITES?.urlFromFilename(path)||'';
+  const spriteRibbon=()=>D.memory.map(m=>`<span class="pixel-chip" title="${esc(m.name)}"><img src="${spriteUrl(m.sprite)}" alt="" loading="lazy"></span>`).join('');
+  function showSpriteGallery(){
+    const pack=window.EI_SPRITES;
+    if(!pack?.ready){toast('No se pudo abrir el paquete de sprites: '+(pack?.getError()||'no cargado'));return;}
+    const items=pack.list(), groups=['Todos',...new Set(items.map(x=>x.group))];
+    $('#view').innerHTML=`<section class="sprite-gallery-page"><nav class="game-breadcrumb"><button id="galleryBack">← Volver a Olimpiadas</button><span>/</span><span>Galería retro</span></nav>
+      <div class="section-kicker">SUPER RETRO RANCH · ASSETS GRATUITOS</div><h1>Galería de sprites originales</h1>
+      <p>Los ${items.length} PNG del paquete Free Tier están incorporados en el videojuego como recursos empaquetados. Aquí puedes comprobar sus personajes, animaciones, cultivos, objetos y escenarios.</p>
+      <div class="asset-filters">${groups.map((x,i)=>`<button data-group="${i}" class="area-btn ${i===0?'active':''}">${esc(x)}</button>`).join('')}</div>
+      <div class="sprites-gallery" id="spritesGallery"></div>
+      <p class="license-note">Crédito: Gif · SuperRetroRanch Free Tier. Uso interno no comercial. Los sprites no se ofrecen como archivos independientes.</p>
+    </section>`;
+    const gallery=$('#spritesGallery');
+    const render=(grp)=>{gallery.innerHTML=items.filter(x=>grp==='Todos'||x.group===grp).map(x=>`<article class="sprite-gallery-item"><div class="sprite-gallery-image"><img loading="lazy" src="${pack.url(x.id)}" alt="${esc(x.filename)}"></div><strong>${esc(x.filename.split('/').slice(-1)[0])}</strong><span>${esc(x.group)}</span></article>`).join('');};
+    render('Todos');
+    $$('.asset-filters button').forEach(btn=>btn.onclick=()=>{$$('.asset-filters button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render(groups[Number(btn.dataset.group)])});
+    $('#galleryBack').onclick=renderHub;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
   function unlocked(mode){if(!state.remote||!state.config.lock_by_day)return true;let start=state.config.start_date;if(!start)return true;const target=new Date(start+'T00:00:00-05:00').getTime()+(mode.day-1)*86400000;return Date.now()>=target}
   function renderHub(){if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;
     const done=Object.keys(state.scores).length;
@@ -42,9 +63,10 @@
           <p>Cinco mundos. Cinco desafíos. Una competencia para demostrar lo que sabes de calidad, SST, auditoría, ciberseguridad y logística.</p>
           <div class="cta-row">
             <button class="btn btn-primary" id="heroAction">${state.player?'▶ CONTINUAR AVENTURA':'✦ CREAR MI PERSONAJE'}</button>
-            <button class="btn btn-outline" id="heroRanking">🏆 VER CLASIFICACIÓN</button>${state.player?'<button class="btn btn-outline" id="editAvatarBtn">✎ EDITAR AVATAR</button>':''}
+            <button class="btn btn-outline" id="heroRanking">🏆 VER CLASIFICACIÓN</button><button class="btn btn-outline" id="heroSprites">🎨 VER MIS 53 SPRITES</button>${state.player?'<button class="btn btn-outline" id="editAvatarBtn">✎ EDITAR AVATAR</button>':''}
           </div>
           <div class="quick-stats"><span>🎮 <b>5</b> minijuegos</span><span>⭐ <b>5.000</b> puntos posibles</span><span>🏅 <b>1 ganador</b> por área</span></div>
+          <div class="asset-strip" aria-label="Sprites integrados del paquete retro">${spriteRibbon()}</div>
         </div>
       </section>
       <div class="section-title-row"><div><div class="section-kicker">ELIGE TU DESAFÍO</div><h2>Tu ruta hacia el podio</h2></div><p>${state.player?`${esc(state.player.alias)} · ${total().toLocaleString('es-CO')} puntos`:'Regístrate y empieza a jugar'}</p></div>
@@ -61,7 +83,7 @@
       </div>
     </div>`;
     $('#heroAction').addEventListener('click',()=>{if(!state.player)openRegistration();else $('#modeCards').scrollIntoView({behavior:'smooth',block:'center'})});
-    $('#heroRanking').onclick=renderRanking;$('#moreRanking').onclick=renderRanking;if($('#editAvatarBtn'))$('#editAvatarBtn').onclick=openWardrobe;if($('#heroAvatar'))avatarOnCanvas($('#heroAvatar'),state.player.avatar||state.avatar);
+    $('#heroRanking').onclick=renderRanking;$('#heroSprites').onclick=showSpriteGallery;$('#moreRanking').onclick=renderRanking;if($('#editAvatarBtn'))$('#editAvatarBtn').onclick=openWardrobe;if($('#heroAvatar'))avatarOnCanvas($('#heroAvatar'),state.player.avatar||state.avatar);
     $$('.mode-card').forEach(b=>b.addEventListener('click',()=>startMode(b.dataset.mode)));
     drawHero();loadHubRanking();
   }
@@ -71,11 +93,22 @@
     const canvas=$('#heroCanvas');if(!canvas)return;
     const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
     const bg=new Image();
-    bg.onload=()=>{if(!canvas.isConnected)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(bg,0,0,canvas.width,canvas.height)};
+    bg.onload=()=>{if(!canvas.isConnected)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(bg,0,0,canvas.width,canvas.height);
+      const original=spriteUrl('characters/males/male_01/idle/male_01_hat_idle_32x32.png');
+      if(original){const person=new Image();person.onload=()=>{if(canvas.isConnected){ctx.imageSmoothingEnabled=false;ctx.drawImage(person,0,0,32,32,266,176,64,64);}};person.src=original;}
+    };
     bg.onerror=()=>{ctx.fillStyle='#1b426e';ctx.fillRect(0,0,canvas.width,canvas.height)};
     bg.src='assets/pixel/campus-ei.png';
   }
+  const spriteAvatarCache={};
   function avatarOnCanvas(canvas,opt=state.avatar){if(!canvas)return;const g=canvas.getContext('2d');canvas.width=24;canvas.height=28;g.imageSmoothingEnabled=false;g.clearRect(0,0,24,28);
+    if((opt.style||'retro')==='retro'){
+      const path=opt.accessory==='helmet'?'characters/males/male_01/idle/male_01_hat_idle_32x32.png':'characters/males/male_01/idle/male_01_idle_32x32.png';
+      const src=spriteUrl(path);
+      if(src){let im=spriteAvatarCache[path];if(!im){im=new Image();spriteAvatarCache[path]=im;im.onload=()=>{if(canvas.isConnected)avatarOnCanvas(canvas,opt)};im.src=src;}
+        if(im.complete&&im.naturalWidth){g.drawImage(im,0,0,32,32,0,0,24,28);return;}
+      }
+    }
     const px=(x,y,w,h,color)=>{g.fillStyle=color;g.fillRect(x,y,w,h)};
     const skins=['#fadbb7','#eebf90','#d99a6d','#ac6a45','#70462f'],hairs=['#3e2b39','#cf8d4e','#0f264d','#e8c052'],shirts=['#267cc3','#f7a82c','#f5f7fb','#8e70d1'];const skin=skins[+opt.skin]||skins[1],hair=hairs[+opt.hairColor]||hairs[0],shirt=shirts[+opt.shirt]||shirts[0];
     px(8,24,3,3,'#0b1d3b');px(13,24,3,3,'#0b1d3b');px(8,20,4,5,'#213954');px(12,20,4,5,'#283d5b');px(6,14,12,9,shirt);px(5,15,2,7,skin);px(17,15,2,7,skin);px(8,13,8,3,skin);px(5,6,14,9,'#17243b');px(6,6,12,8,skin);px(7,4,10,4,hair);
@@ -89,9 +122,10 @@
   }
   function openRegistration(){const opts=state.avatar;$('#modalRoot').innerHTML=`<div class="modal-backdrop" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="regTitle">
      <div class="modal-header"><h2 id="regTitle">✦ Crea tu personaje</h2><button id="closeModal" class="close-modal" aria-label="Cerrar">×</button></div>
-     <div class="modal-body"><div class="reg-grid"><div><div class="avatar-frame"><canvas id="avatarPreview" width="24" height="28" aria-label="Previsualización de personaje"></canvas></div><p class="modal-helper">Elige tu aspecto. ¡Tu avatar te acompañará por los cinco mundos!</p></div>
+     <div class="modal-body"><div class="reg-grid"><div><div class="avatar-frame"><canvas id="avatarPreview" width="24" height="28" aria-label="Previsualización de personaje"></canvas></div><p class="modal-helper">El estilo Retro muestra tu personaje con el sprite original del paquete; el estilo EI permite personalizar colores y peinado.</p></div>
      <form id="registerForm"><div class="custom-grid"><div class="field"><label for="regName">Nombre completo</label><input id="regName" placeholder="Tu nombre y apellido" maxlength="80" minlength="4" required></div><div class="field"><label for="regAlias">Nombre de jugador</label><input id="regAlias" placeholder="Ej. PixelJuan" maxlength="24" minlength="3" required></div></div>
      <div class="field"><label for="regArea">Área de trabajo</label><select id="regArea" required><option value="">Selecciona tu área</option>${D.areas.map(a=>`<option>${esc(a)}</option>`).join('')}</select></div>
+     <div class="field"><label for="avStyle">Estilo de avatar</label><select id="avStyle" data-avatar="style"><option value="retro">Sprite original SuperRetroRanch</option><option value="ei">Personaje EI personalizable</option></select></div>
      <div class="custom-grid"><div class="field"><label for="avSkin">Tono de piel</label><select id="avSkin" data-avatar="skin">${['Claro','Trigueño claro','Trigueño','Moreno','Oscuro'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
        <div class="field"><label for="avHair">Peinado</label><select id="avHair" data-avatar="hair">${['Corto','Alto','Largo','Lateral'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
        <div class="field"><label for="avHairColor">Color de cabello</label><select id="avHairColor" data-avatar="hairColor">${['Castaño oscuro','Castaño claro','Negro azulado','Rubio'].map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></div>
@@ -111,7 +145,7 @@
     if(!state.player)return;
     const a={...state.avatar,...(state.player.avatar||{})};
     const options=(items,key)=>items.map((label,i)=>`<option value="${i}" ${String(a[key])===String(i)?'selected':''}>${label}</option>`).join('');
-    $('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" style="max-width:650px" role="dialog" aria-modal="true"><div class="modal-header"><h2>🎨 Tu vestuario pixel</h2><button id="closeWardrobe" class="close-modal" aria-label="Cerrar">×</button></div><div class="modal-body"><div class="reg-grid"><div><div class="avatar-frame"><canvas id="avatarPreview" width="24" height="28"></canvas></div></div><div><div class="field"><label>Peinado</label><select data-avatar="hair">${options(['Corto','Alto','Largo','Lateral'],'hair')}</select></div><div class="field"><label>Color de cabello</label><select data-avatar="hairColor">${options(['Castaño oscuro','Castaño claro','Negro azulado','Rubio'],'hairColor')}</select></div><div class="field"><label>Tono de piel</label><select data-avatar="skin">${options(['Claro','Trigueño claro','Trigueño','Moreno','Oscuro'],'skin')}</select></div><div class="field"><label>Uniforme</label><select data-avatar="shirt">${options(['Azul EI','Naranja','Blanco','Violeta'],'shirt')}</select></div><div class="field"><label>Accesorio</label><select data-avatar="accessory">${['helmet','glasses','headphones','vest','none'].map((v,i)=>`<option value="${v}" ${a.accessory===v?'selected':''}>${['Casco de seguridad','Gafas','Auriculares','Chaleco reflectivo','Sin accesorio'][i]}</option>`).join('')}</select></div></div></div><div id="wardrobeError" class="modal-error"></div><div class="reg-bottom"><button id="saveWardrobe" class="btn btn-primary">GUARDAR PERSONAJE</button></div></div></div></div>`;
+    $('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" style="max-width:650px" role="dialog" aria-modal="true"><div class="modal-header"><h2>🎨 Tu vestuario pixel</h2><button id="closeWardrobe" class="close-modal" aria-label="Cerrar">×</button></div><div class="modal-body"><div class="reg-grid"><div><div class="avatar-frame"><canvas id="avatarPreview" width="24" height="28"></canvas></div></div><div><div class="field"><label>Estilo de personaje</label><select data-avatar="style"><option value="retro" ${a.style==='retro'||!a.style?'selected':''}>SuperRetroRanch original</option><option value="ei" ${a.style==='ei'?'selected':''}>EI personalizable</option></select></div><div class="field"><label>Peinado</label><select data-avatar="hair">${options(['Corto','Alto','Largo','Lateral'],'hair')}</select></div><div class="field"><label>Color de cabello</label><select data-avatar="hairColor">${options(['Castaño oscuro','Castaño claro','Negro azulado','Rubio'],'hairColor')}</select></div><div class="field"><label>Tono de piel</label><select data-avatar="skin">${options(['Claro','Trigueño claro','Trigueño','Moreno','Oscuro'],'skin')}</select></div><div class="field"><label>Uniforme</label><select data-avatar="shirt">${options(['Azul EI','Naranja','Blanco','Violeta'],'shirt')}</select></div><div class="field"><label>Accesorio</label><select data-avatar="accessory">${['helmet','glasses','headphones','vest','none'].map((v,i)=>`<option value="${v}" ${a.accessory===v?'selected':''}>${['Casco de seguridad','Gafas','Auriculares','Chaleco reflectivo','Sin accesorio'][i]}</option>`).join('')}</select></div></div></div><div id="wardrobeError" class="modal-error"></div><div class="reg-bottom"><button id="saveWardrobe" class="btn btn-primary">GUARDAR PERSONAJE</button></div></div></div></div>`;
     const repaint=()=>avatarOnCanvas($('#avatarPreview'),a);repaint();
     $$('[data-avatar]').forEach(e=>e.onchange=()=>{a[e.dataset.avatar]=e.value;repaint()});$('#closeWardrobe').onclick=()=>$('#modalRoot').innerHTML='';
     $('#saveWardrobe').onclick=async()=>{try{if(state.remote){const r=await api('avatar',{id:state.player.id,access_key:credentials().access_key,avatar:a});state.player=r.player}else{const d=demoData(),p=d.players.find(x=>x.id===state.player.id);if(p){p.avatar=a;saveDemo(d)}state.player.avatar=a}state.avatar={...a};$('#modalRoot').innerHTML='';renderHeader();renderHub();toast('Avatar actualizado')}catch(err){$('#wardrobeError').textContent=err.message}};

@@ -21,3 +21,24 @@ h1,h2,h3,p{margin-top:0}.pixel{font-family:var(--pixel);line-height:1.7;text-tra
 .case-canvas-wrap{border-radius:2px;box-shadow:0 7px 0 #05142a,0 0 0 2px #5788b6}
 @media(max-width:770px){.mode-card .mode-scene,.mode-illustration{min-height:115px;height:115px}.game-header-thumb{width:62px;height:43px}}
 @media(max-width:430px){.mode-card .mode-scene,.mode-illustration{min-height:99px;height:99px}.game-header-thumb{width:51px;height:36px}.game-header h1{gap:8px}}
+
+/* Integración visual de sprites SuperRetroRanch */
+.asset-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;max-width:420px}
+.pixel-chip{width:36px;height:36px;display:grid;place-items:center;background:#0c2347d9;border:1px solid #5f88c5;border-radius:8px;box-shadow:0 3px 0 #07162d}
+.pixel-chip img{width:24px;height:24px;image-rendering:pixelated;display:block}
+.memory-icon{width:30px;height:30px;display:block;image-rendering:pixelated;margin:0 auto 6px}
+.memory-tile.revealed>span,.memory-tile.matched>span{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+
+/* Galería interactiva: cada tarjeta usa los 53 sprites originales cargados del pack. */
+.sprite-gallery-page{padding:26px 0 55px;min-height:70vh}
+.sprite-gallery-page>h1{font-family:var(--pixel);font-size:clamp(15px,2vw,24px);color:#ffe78a;margin:17px 0 22px;line-height:1.65}
+.sprite-gallery-page>p{max-width:900px;color:#b8cee9;line-height:1.6}
+.asset-filters{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 25px}
+.sprites-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:15px}
+.sprite-gallery-item{min-width:0;overflow:hidden;border:2px solid #345994;border-radius:12px;background:#122b54;padding:13px;box-shadow:0 5px 0 #07142c}
+.sprite-gallery-image{height:132px;display:flex;justify-content:center;align-items:center;border-radius:6px;background:radial-gradient(#235d92,#091c37);overflow:hidden}
+.sprite-gallery-image img{width:auto;max-width:95%;max-height:118px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(3px 5px 0 #001126)}
+.sprite-gallery-item strong{font-size:11px;display:block;overflow-wrap:anywhere;line-height:1.5;color:#e2f5ff;margin-top:12px}
+.sprite-gallery-item span{font-size:10px;color:#8fb5db}
+.sprite-gallery-page .license-note{font-size:11px;color:#8fa9c9;margin:26px 0}
+@media(max-width:430px){.sprites-gallery{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.sprite-gallery-item{padding:8px}.sprite-gallery-image{height:104px}.sprite-gallery-image img{max-height:96px}}
