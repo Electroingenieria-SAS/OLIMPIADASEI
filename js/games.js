@@ -33,7 +33,7 @@
   const obstacles=new Set();for(let y of [2,3,7,8])for(let x of [5,6,7,13,14,15])obstacles.add(`${x},${y}`);
   function blocked(x,y){return x<1||x>=CW-1||y<1||y>=CH-1||obstacles.has(`${x},${y}`)}
   function dist(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)}
-  function startCase(){g.p={x:2,y:10};g.dir=0;g.frame=0;g.resolved=new Set();g.score=0;g.current=null;g.path=[];g.finishing=false;g.character=new Image();g.character.src='assets/character-walk.png';g.character.onload=()=>drawCase();g.ground=new Image();g.ground.src='assets/ground-tiles.png';g.ground.onload=()=>drawCase();
+  function startCase(){g.p={x:2,y:10};g.dir=0;g.frame=0;g.resolved=new Set();g.score=0;g.current=null;g.path=[];g.finishing=false;g.caseTiles=new Image();g.caseTiles.onload=()=>drawCase();g.caseTiles.src='assets/pixel/case-tiles.png';g.character=new Image();g.character.src='assets/character-walk.png';g.character.onload=()=>drawCase();g.ground=new Image();g.ground.src='assets/ground-tiles.png';g.ground.onload=()=>drawCase();
     runCountdown(160,()=>finish(`Recogiste ${g.resolved.size} de 4 evidencias del caso.`));renderCase();
     keys=e=>{if(!g||g.mode!=='case'||g.ending||g.current)return;const keysMap={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};if(keysMap[e.key]){e.preventDefault();g.path=[];moveCase(...keysMap[e.key])}else if(e.key==='e'||e.key==='E'||e.key===' '){e.preventDefault();interactCase()}};
     window.addEventListener('keydown',keys);every(()=>{if(!g||g.mode!=='case'||g.current||!g.path.length)return;const next=g.path.shift();moveCase(next.x-g.p.x,next.y-g.p.y);if(!g.path.length&&g.goal)interactCase(g.goal)},150);
@@ -51,10 +51,19 @@
   function bfs(start,destination){const key=p=>`${p.x},${p.y}`;if(blocked(destination.x,destination.y))return[];let queue=[start],seen=new Set([key(start)]),parent={};while(queue.length){const p=queue.shift();if(key(p)===key(destination)){const path=[];let pos=key(p);while(pos!==key(start)){let [x,y]=pos.split(',').map(Number);path.unshift({x,y});pos=parent[pos]}return path}for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){const n={x:p.x+dx,y:p.y+dy};if(!blocked(n.x,n.y)&&!seen.has(key(n))){seen.add(key(n));parent[key(n)]=key(p);queue.push(n)}}}return []}
   function drawCase(){if(!g||g.mode!=='case')return;const canvas=$('#caseCanvas');if(!canvas)return;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
     c.fillStyle='#1b3957';c.fillRect(0,0,640,384);
-    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){let u=x*TILE,v=y*TILE;c.fillStyle=(x+y)%2?'#2e5167':'#31586c';c.fillRect(u,v,TILE,TILE);c.fillStyle='#3c687b';c.fillRect(u+1,v+1,30,1);c.fillStyle='#26435d';c.fillRect(u+1,v+30,30,1);
-      if(g.ground.complete&&g.ground.naturalWidth&&x%4===0&&y%3===0){c.save();c.globalAlpha=.18;c.drawImage(g.ground,0,0,16,16,u,v,TILE,TILE);c.restore()}
-      if(x===0||x===CW-1||y===0||y===CH-1){c.fillStyle='#132d52';c.fillRect(u,v,TILE,TILE);c.fillStyle='#416d9a';c.fillRect(u+3,v+3,26,6)}
-      if(obstacles.has(`${x},${y}`)){c.fillStyle='#10233b';c.fillRect(u,v+1,32,31);c.fillStyle='#a87c4c';c.fillRect(u+2,v+3,28,23);c.fillStyle='#c69a53';c.fillRect(u+5,v+5,23,8);c.fillStyle='#785339';c.fillRect(u+5,v+16,23,4);c.fillStyle='#d1b27a';c.fillRect(u+3,v+26,28,3)}
+    const atlasReady=g.caseTiles?.complete&&g.caseTiles.naturalWidth>=256;
+    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){
+      const u=x*TILE,v=y*TILE,edge=x===0||x===CW-1||y===0||y===CH-1;
+      const shelf=obstacles.has(`${x},${y}`);
+      if(atlasReady){
+        const tile=edge?2:shelf?((x+y)%3===0?4:3):((x+y)%7===0?1:0);
+        c.drawImage(g.caseTiles,tile*32,0,32,32,u,v,TILE,TILE);
+        if(!edge&&!shelf&&(x+y)%13===0){c.drawImage(g.caseTiles,6*32,0,32,32,u,v,TILE,TILE)}
+      }else{
+        c.fillStyle=edge?'#18314d':(x+y)%2?'#2e5167':'#31586c';c.fillRect(u,v,TILE,TILE);
+        if(shelf){c.fillStyle='#aa794c';c.fillRect(u+2,v+3,28,24);c.fillStyle='#e2bc76';c.fillRect(u+4,v+7,24,4)}
+      }
+      if(!edge&&!shelf&&y===6&&x>1&&x<CW-2){c.fillStyle='#d7bb5b';c.fillRect(u+9,v+28,13,2)}
     }
     for(let i=2;i<=17;i+=5){c.fillStyle='#91ab55';c.fillRect(i*TILE+6,5*TILE+8,21,15);c.fillStyle='#dce3b8';c.fillRect(i*TILE+10,5*TILE+8,12,3)}
     for(const clue of D.caseClues){if(g.resolved.has(clue.id))continue;let x=clue.x*TILE,y=clue.y*TILE;c.fillStyle='#eebc53';c.fillRect(x+7,y+5,20,22);c.fillStyle='#fff4bc';c.fillRect(x+10,y+8,14,15);c.fillStyle='#b55b54';c.fillRect(x+12,y+14,10,3);c.fillStyle='#fff5a6';c.fillRect(x+12,y-4,9,7);c.fillStyle='#131b3d';c.font='bold 10px monospace';c.fillText('!',x+13,y+2)}

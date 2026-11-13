@@ -8,3 +8,16 @@ h1,h2,h3,p{margin-top:0}.pixel{font-family:var(--pixel);line-height:1.7;text-tra
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 
 .profile-bubble{position:absolute;right:15%;bottom:18px;background:#0c2b5edd;border:2px solid #a8d5ff;border-radius:8px;padding:12px 13px 7px;display:grid;justify-items:center;gap:3px;color:#ffdf78;font-size:12px;font-weight:900;box-shadow:0 6px 0 #08172a}.profile-bubble canvas{width:72px;height:84px;image-rendering:pixelated;filter:drop-shadow(4px 5px 0 #041b3c)}@media(max-width:770px){.profile-bubble{right:8%;opacity:.76}.profile-bubble canvas{width:50px;height:58px}}
+
+/* Escenarios originales pixel art para las cinco disciplinas (2026). */
+.mode-card .mode-scene{position:relative;padding:0;min-height:140px;overflow:hidden;display:flex;align-items:stretch;justify-content:stretch;background:#0e3054}
+.mode-illustration{display:block;width:100%;height:140px;object-fit:cover;object-position:center;image-rendering:pixelated;transition:transform .28s cubic-bezier(.2,.7,.2,1);filter:saturate(1.12)}
+.mode-card:hover .mode-illustration{transform:scale(1.085)}
+.mode-illustration-mark{position:absolute;right:10px;top:10px;border:1px solid #ffffff66;background:#10284aba;border-radius:4px;line-height:1.3;font-size:18px;padding:4px 6px;box-shadow:0 3px 0 #09172f}
+.mode-card .mode-scene::after{content:"";position:absolute;inset:auto 0 0;height:35px;background:linear-gradient(transparent,#081b3d99);pointer-events:none}
+.game-header h1{display:flex;align-items:center;gap:14px}
+.game-header-thumb{width:75px;height:51px;object-fit:cover;image-rendering:pixelated;border:2px solid #6eb8e7;box-shadow:0 3px 0 #081a3b;border-radius:4px}
+.hero-art #heroCanvas{image-rendering:pixelated}
+.case-canvas-wrap{border-radius:2px;box-shadow:0 7px 0 #05142a,0 0 0 2px #5788b6}
+@media(max-width:770px){.mode-card .mode-scene,.mode-illustration{min-height:115px;height:115px}.game-header-thumb{width:62px;height:43px}}
+@media(max-width:430px){.mode-card .mode-scene,.mode-illustration{min-height:99px;height:99px}.game-header-thumb{width:51px;height:36px}.game-header h1{gap:8px}}

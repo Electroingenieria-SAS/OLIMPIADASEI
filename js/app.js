@@ -51,7 +51,7 @@
       <section class="modes" id="modeCards" aria-label="Modos de juego">${D.modes.map(m=>{
         const completed=state.scores[m.id]!==undefined;const locked=!unlocked(m);
         return `<button class="mode-card ${locked?'locked':''}" style="--accent:${m.color}" data-mode="${m.id}" ${locked?'disabled':''}>
-          <div class="mode-scene"><span class="mode-icon">${m.icon}</span></div>
+          <div class="mode-scene"><img class="mode-illustration" src="assets/pixel/mode-${m.id}.png" alt="Escenario pixel art de ${esc(m.title)}" loading="lazy"><span class="mode-illustration-mark">${m.icon}</span></div>
           <div class="mode-body"><div><span class="pill">DÍA ${m.day}</span></div><h3>${esc(m.title)}</h3><span class="mode-desc">${esc(m.description)}</span>
           <div class="mode-bottom"><span>${locked?'🔒 Próximamente':completed?'✓ Completado':'▶ Jugar ahora'}</span>${completed?`<strong class="chip-score">${Number(state.scores[m.id]).toLocaleString('es-CO')} PT</strong>`:`<strong>1.000 PT</strong>`}</div></div>
         </button>`}).join('')}</section>
@@ -66,14 +66,14 @@
     drawHero();loadHubRanking();
   }
   async function loadHubRanking(){try{const x=state.remote?(await api('rankings')).rankings:rankFromDemo();if(!$('#hubRanking'))return;const first=x.slice(0,3);$('#hubRanking').outerHTML=first.length?`<table class="team-rank-table"><thead><tr><th>#</th><th>Jugador / Área</th><th>PTS</th></tr></thead><tbody>${first.map((r,i)=>`<tr><td>${['🥇','🥈','🥉'][i]}</td><td><b>${esc(r.alias)}</b><br><small class="text-muted">${esc(r.area)}</small></td><td>${r.total.toLocaleString('es-CO')}</td></tr>`).join('')}</tbody></table>`:`<div id="hubRanking" class="empty-state">Todavía no hay puntajes. ¡Puedes ser la primera persona en clasificar!</div>`}catch(_){if($('#hubRanking'))$('#hubRanking').textContent='No se pudo cargar la clasificación.'}}
-  function drawHero(){const canvas=$('#heroCanvas');if(!canvas)return;const g=canvas.getContext('2d');g.imageSmoothingEnabled=false;const W=400,H=260;
-    g.clearRect(0,0,W,H);g.fillStyle='#1c407f';g.fillRect(0,0,W,H);
-    for(let i=0;i<65;i++){const x=(i*73+27)%W,y=(i*37+11)%140;g.fillStyle=i%3===0?'#72bcff':'#4269b1';g.fillRect(x,y,2,2)}
-    g.fillStyle='#092858';g.fillRect(90,76,260,164);g.fillStyle='#305ba4';g.fillRect(100,85,240,145);g.fillStyle='#0a2452';g.fillRect(115,100,210,128);
-    g.fillStyle='#e6dafa';g.fillRect(176,45,86,51);g.fillStyle='#ffd36b';g.fillRect(187,58,65,7);g.fillRect(197,66,45,20);g.fillStyle='#d88a31';g.fillRect(209,86,23,7);g.fillStyle='#fff0ad';g.fillRect(191,58,8,10);g.fillStyle='#f4c05d';g.fillRect(177,56,12,21);g.fillRect(247,56,12,21);
-    g.fillStyle='#73bdeb';for(let row=0;row<3;row++)for(let col=0;col<5;col++){g.fillRect(130+col*36,114+row*28,24,16);g.fillStyle='#f9dc7a';g.fillRect(134+col*36,118+row*28,9,6);g.fillStyle='#73bdeb'}
-    g.fillStyle='#102748';g.fillRect(0,231,W,29);for(let i=0;i<30;i++){g.fillStyle=i%2?'#265b94':'#2a477e';g.fillRect(i*18,231+(i%3)*4,13,29)}
-    const char=new Image();char.onload=()=>{g.drawImage(char,0,0,32,32,300,179,56,56);g.drawImage(char,0,0,32,32,75,196,38,38)};char.src='assets/character-idle.png';
+  // Arte ambiental original para esta aplicación. El logo institucional se conserva intacto.
+  function drawHero(){
+    const canvas=$('#heroCanvas');if(!canvas)return;
+    const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+    const bg=new Image();
+    bg.onload=()=>{if(!canvas.isConnected)return;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(bg,0,0,canvas.width,canvas.height)};
+    bg.onerror=()=>{ctx.fillStyle='#1b426e';ctx.fillRect(0,0,canvas.width,canvas.height)};
+    bg.src='assets/pixel/campus-ei.png';
   }
   function avatarOnCanvas(canvas,opt=state.avatar){if(!canvas)return;const g=canvas.getContext('2d');canvas.width=24;canvas.height=28;g.imageSmoothingEnabled=false;g.clearRect(0,0,24,28);
     const px=(x,y,w,h,color)=>{g.fillStyle=color;g.fillRect(x,y,w,h)};
@@ -124,7 +124,7 @@
   async function register(p){if(state.remote){const x=await api('register',p);state.player=x.player;state.avatar={...state.avatar,...(x.player.avatar||{})};state.scores=x.scores||{};localStorage.setItem(credsKey,JSON.stringify({id:x.player.id,access_key:x.access_key}));return x}
     const d=demoData();const id='demo-'+Date.now().toString(36);const u={...p,id,scores:{}};d.players.push(u);d.current=id;saveDemo(d);state.player=u;state.scores={};return {player:u}}
   function showCredential(secret,id){$('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true" style="max-width:560px"><div class="modal-header"><h2>✓ ¡Tu avatar está listo!</h2></div><div class="modal-body"><p>Guarda esta clave privada. Permite recuperar tu perfil si cambias de navegador.</p><div style="padding:16px;background:#061a3d;border:1px dashed #70a3df;border-radius:8px;word-break:break-all;font-family:monospace;font-size:15px"><strong>${esc(id)}</strong><br>${esc(secret)}</div><p class="modal-helper">No compartas esta clave: permite acceder a tus resultados.</p><div class="reg-bottom"><button id="copyCred" class="btn btn-blue">Copiar datos</button><button id="okCred" class="btn btn-primary">¡A jugar!</button></div></div></div></div>`;$('#copyCred').onclick=()=>{navigator.clipboard?.writeText('ID: '+id+'\nClave: '+secret);toast('Datos copiados')};$('#okCred').onclick=()=>$('#modalRoot').innerHTML=''}
-  function gameScaffold(mode){const m=D.modes.find(x=>x.id===mode);$('#view').innerHTML=`<div class="game-shell"><nav class="game-breadcrumb"><button id="gameBack">← Inicio</button><span>/</span><span>Día ${m.day}: ${esc(m.title)}</span></nav><section class="game-header"><div><div class="section-kicker">DESAFÍO ${m.day} DE 5</div><h1>${m.icon} ${esc(m.title)}</h1><p>${esc(m.subtitle)} · ${esc(m.description)}</p></div><div class="game-header-meta"><div class="stat-box"><span class="stat-label">Tiempo</span><span id="gameTime" class="stat-value">--:--</span></div><div class="stat-box"><span class="stat-label">Puntos</span><span id="gamePoints" class="stat-value">0</span></div></div></section><section class="game-main"><div id="game-content"></div></section></div>`;$('#gameBack').onclick=()=>{if(confirm('¿Salir del desafío? Se perderá el progreso de esta ronda.'))renderHub()};window.scrollTo({top:0,behavior:'smooth'})}
+  function gameScaffold(mode){const m=D.modes.find(x=>x.id===mode);$('#view').innerHTML=`<div class="game-shell"><nav class="game-breadcrumb"><button id="gameBack">← Inicio</button><span>/</span><span>Día ${m.day}: ${esc(m.title)}</span></nav><section class="game-header"><div><div class="section-kicker">DESAFÍO ${m.day} DE 5</div><h1><img src="assets/pixel/mode-${m.id}.png" class="game-header-thumb" alt="" aria-hidden="true">${esc(m.title)}</h1><p>${esc(m.subtitle)} · ${esc(m.description)}</p></div><div class="game-header-meta"><div class="stat-box"><span class="stat-label">Tiempo</span><span id="gameTime" class="stat-value">--:--</span></div><div class="stat-box"><span class="stat-label">Puntos</span><span id="gamePoints" class="stat-value">0</span></div></div></section><section class="game-main"><div id="game-content"></div></section></div>`;$('#gameBack').onclick=()=>{if(confirm('¿Salir del desafío? Se perderá el progreso de esta ronda.'))renderHub()};window.scrollTo({top:0,behavior:'smooth'})}
   async function startMode(mode){const meta=D.modes.find(m=>m.id===mode);if(!meta||!unlocked(meta)){toast('Este desafío aún no está disponible');return}if(!state.player){openRegistration();return}if(state.busy)return;const played=state.scores[mode]!==undefined;
     if(played&&state.remote&&!confirm('Ya completaste este reto oficialmente. ¿Deseas jugar de nuevo en PRÁCTICA? No cambiará tu puntaje.'))return;
     state.busy=true;let token=null,practice=played&&state.remote;
