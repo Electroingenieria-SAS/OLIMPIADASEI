@@ -32,6 +32,17 @@ jobs:
           test -s dist/index.html
           test -s dist/js/games.js
           test -s dist/js/app.js
+          test -s dist/js/sprites.js
+          test -s dist/assets/superretro/gamepack.bin
+          test -s dist/assets/superretro/manifest.json
+      - name: Verificar integridad de scripts y assets Free Tier
+        run: |
+          node --check js/app.js
+          node --check js/games.js
+          node --check js/data.js
+          node --check js/sprites.js
+          node -e "const m=require('./assets/superretro/manifest.json'); if(m.sprite_count!==53 || m.sprites.length!==53)process.exit(1); console.log('Sprites verificados:', m.sprite_count)"
+          node -e "const fs=require('fs');const b=fs.readFileSync('assets/superretro/gamepack.bin');if(b.subarray(0,5).toString()!=='EISR2' || b.length<50000)process.exit(1);console.log('Pack validado:',b.length,'bytes')"
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
       - name: Subir artefacto
