@@ -1,0 +1,102 @@
+'use strict';
+(() => {
+  const EI=window.EI,D=EI.D,$=EI.$,$$=EI.$$,esc=EI.esc,shuffle=EI.shuffle;
+  let g=null,intervals=[],timeouts=[],keys=null;
+  const after=(fn,ms)=>{const t=setTimeout(fn,ms);timeouts.push(t);return t};
+  const every=(fn,ms)=>{const t=setInterval(fn,ms);intervals.push(t);return t};
+  function cleanup(){intervals.forEach(clearInterval);timeouts.forEach(clearTimeout);intervals=[];timeouts=[];if(keys)window.removeEventListener('keydown',keys);keys=null;g=null}
+  function now(){return performance.now()}
+  function displayScore(){if($('#gamePoints')&&g)$('#gamePoints').textContent=Math.min(1000,Math.round(g.score||0)).toLocaleString('es-CO')}
+  function displayTime(s){if($('#gameTime'))$('#gameTime').textContent=`${Math.floor(Math.max(s,0)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(s,0)%60).toString().padStart(2,'0')}`}
+  function runCountdown(seconds,onZero){g.endAt=now()+seconds*1000;const tick=()=>{if(!g)return;const remain=Math.max(0,(g.endAt-now())/1000);g.remaining=remain;displayTime(remain);if(remain<=0){clearInterval(timer);onZero()}};const timer=every(tick,150);tick()}
+  function finish(details){if(!g||g.ending)return;g.ending=true;const {mode,score}=g;EI.finish(mode,Math.round(score),details)}
+  function gameGuide(message){return `<div class="game-guide">🎯 ${message}</div>`}
+  function progress(n,max){return `<div class="progress-track"><div style="width:${Math.round(n/max*100)}%"></div></div>`}
+  function choiceHTML(item,callbackId='answers',disabled=[]){return `<div class="answers" id="${callbackId}">${item.options.map((x,i)=>`<button class="answer ${disabled.includes(i)?'eliminated':''}" data-answer="${i}" ${disabled.includes(i)?'disabled':''}><span class="answer-key">${'ABCD'[i]}</span><span>${esc(x)}</span></button>`).join('')}</div>`}
+  function start(mode){cleanup();g={mode,score:0,remaining:0,ending:false};({agility:startAgility,memory:startMemory,case:startCase,logic:startLogic,knowledge:startKnowledge})[mode]?.()}
+  function startAgility(){g.questions=shuffle(D.agility).slice(0,10);g.index=0;g.hits=0;g.locked=false;g.score=0;runCountdown(80,()=>finish(`Acertaste ${g.hits} de ${g.index} decisiones antes de que terminara el tiempo.`));renderAgility()}
+  function renderAgility(){if(!g||g.ending)return;if(g.index>=g.questions.length){finish(`¡Respondiste ${g.hits} de 10 decisiones correctamente!`);return}const item=g.questions[g.index];g.openedAt=now();g.locked=false;
+    $('#game-content').innerHTML=`${gameGuide('Responde tan rápido como puedas. ¡Los aciertos veloces suman puntos extra!')}
+      <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:14px;color:#aaccf3;font-size:12px"><span>PREGUNTA ${g.index+1} / 10</span><span>${g.hits} aciertos</span></div>${progress(g.index,10)}
+      <div class="question-card"><div class="question-topic">⚡ ${esc(item.topic)}</div><h2>${esc(item.q)}</h2>${choiceHTML(item)}<div id="feedback" class="feedback" style="visibility:hidden"></div></div>`;
+    $('#answers').onclick=e=>{const b=e.target.closest('[data-answer]');if(!b||g.locked)return;const i=Number(b.dataset.answer),correct=i===item.a;g.locked=true;g.index++;if(correct){g.hits++;g.score+=75+Math.max(0,Math.round(25-(now()-g.openedAt)/550));EI.sound('win')}else{EI.sound('bad')}
+      displayScore();$$('#answers .answer').forEach(x=>{x.disabled=true;if(+x.dataset.answer===item.a)x.classList.add('correct');else if(+x.dataset.answer===i)x.classList.add('wrong')});const f=$('#feedback');f.style.visibility='visible';f.className='feedback '+(correct?'success':'error');f.textContent=`${correct?'✓ ¡Excelente!':'✕ No es correcto.'} ${item.why}`;after(renderAgility,980)}
+  }
+  function startMemory(){const cards=D.memory.flatMap(x=>[x,x]);g.deck=shuffle(cards).map((x,i)=>({...x,serial:i}));g.flipped=[];g.matched=new Set();g.moves=0;g.mistakes=0;g.locked=false;g.score=0;runCountdown(100,()=>finish(`Encontraste ${g.matched.size} de 8 parejas.`));renderMemory()}
+  function renderMemory(){if(!g||g.ending)return;$('#game-content').innerHTML=`${gameGuide('Encuentra 8 pares de símbolos relacionados con nuestros procesos. Recuerda sus posiciones.')}
+   <div style="display:flex;justify-content:space-between;margin:0 auto 14px;max-width:790px;color:#b2d0ed;font-size:13px"><span>🧠 PAREJAS: <b>${g.matched.size}/8</b></span><span>INTENTOS: <b>${g.moves}</b></span></div>
+   <div class="memory-board" id="memoryBoard">${g.deck.map((x,i)=>{const on=g.flipped.includes(i)||g.matched.has(x.id);return `<button class="memory-tile ${on?'revealed':''} ${g.matched.has(x.id)?'matched':''}" data-card="${i}" ${g.matched.has(x.id)?'disabled':''} aria-label="${on?esc(x.name):'Carta oculta'}">${on?`<span>${x.icon}<span class="memory-caption">${esc(x.name)}</span></span>`:'<span class="memory-back">EI</span>'}</button>`}).join('')}</div>`;
+    $('#memoryBoard').onclick=e=>{const el=e.target.closest('[data-card]');if(!el||g.locked)return;const i=+el.dataset.card;if(g.flipped.includes(i)||g.matched.has(g.deck[i].id))return;g.flipped.push(i);EI.sound();renderMemory();if(g.flipped.length===2){g.locked=true;g.moves++;const [a,b]=g.flipped;const matched=g.deck[a].id===g.deck[b].id;if(!matched)g.mistakes++;after(()=>{if(!g||g.mode!=='memory')return;if(matched){g.matched.add(g.deck[a].id);EI.sound('win')}else EI.sound('bad');g.flipped=[];g.locked=false;g.score=Math.max(0,Math.min(990,g.matched.size*100+Math.round(g.remaining*.9)-g.mistakes*10));displayScore();if(g.matched.size===8){g.score=Math.max(400,Math.min(1000,650+Math.round(g.remaining*3.4)-g.mistakes*24));finish(`¡Memoria completada en ${g.moves} intentos y ${g.mistakes} errores!`)}else renderMemory()},matched?350:820)}};
+  }
+  // Caso explorable: escenario de 20 x 12 casillas, movimiento con teclado o clic.
+  const CW=20,CH=12,TILE=32;
+  const obstacles=new Set();for(let y of [2,3,7,8])for(let x of [5,6,7,13,14,15])obstacles.add(`${x},${y}`);
+  function blocked(x,y){return x<1||x>=CW-1||y<1||y>=CH-1||obstacles.has(`${x},${y}`)}
+  function dist(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)}
+  function startCase(){g.p={x:2,y:10};g.dir=0;g.frame=0;g.resolved=new Set();g.score=0;g.current=null;g.path=[];g.finishing=false;g.character=new Image();g.character.src='assets/character-walk.png';g.character.onload=()=>drawCase();g.ground=new Image();g.ground.src='assets/ground-tiles.png';g.ground.onload=()=>drawCase();
+    runCountdown(160,()=>finish(`Recogiste ${g.resolved.size} de 4 evidencias del caso.`));renderCase();
+    keys=e=>{if(!g||g.mode!=='case'||g.ending||g.current)return;const keysMap={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};if(keysMap[e.key]){e.preventDefault();g.path=[];moveCase(...keysMap[e.key])}else if(e.key==='e'||e.key==='E'||e.key===' '){e.preventDefault();interactCase()}};
+    window.addEventListener('keydown',keys);every(()=>{if(!g||g.mode!=='case'||g.current||!g.path.length)return;const next=g.path.shift();moveCase(next.x-g.p.x,next.y-g.p.y);if(!g.path.length&&g.goal)interactCase(g.goal)},150);
+  }
+  function renderCase(){if(!g||g.ending)return;$('#game-content').innerHTML=`${gameGuide('Recorre la bodega con WASD o las flechas. Acércate a una pista y pulsa E, o tócala para caminar hacia ella.')}
+    <div class="case-layout"><div><div class="case-canvas-wrap" id="caseWrap"><canvas width="640" height="384" id="caseCanvas" aria-label="Mapa interactivo de la bodega"></canvas><div id="caseModal"></div></div><div class="case-note" style="text-align:center">🕹️ Flechas / WASD para moverte · E o botón INVESTIGAR · Clic sobre el mapa para desplazarte</div></div>
+      <aside class="case-sidebar"><h3>📋 Lista de hallazgos</h3><div id="caseEvidence">${caseEvidence()}</div><p class="case-note">Encuentra cuatro pistas y decide cómo responder. Después podrás resolver el caso final.</p><div class="control-pad"><span class="blank"></span><button data-move="0,-1" aria-label="Arriba">▲</button><span class="blank"></span><button data-move="-1,0" aria-label="Izquierda">◀</button><button data-interact="true" aria-label="Investigar">E</button><button data-move="1,0" aria-label="Derecha">▶</button><span class="blank"></span><button data-move="0,1" aria-label="Abajo">▼</button><span class="blank"></span></div><button id="caseInspect" class="btn btn-primary btn-sm" style="margin-top:11px;width:100%">🔎 INVESTIGAR</button></aside></div>`;
+    $$('.control-pad button[data-move]').forEach(b=>b.onclick=()=>{if(!g.current){g.path=[];moveCase(...b.dataset.move.split(',').map(Number))}});$('#caseInspect').onclick=()=>interactCase();$('[data-interact]').onclick=()=>interactCase();
+    $('#caseCanvas').onclick=e=>{if(g.current)return;const canvas=e.currentTarget;const rect=canvas.getBoundingClientRect();const x=Math.floor((e.clientX-rect.left)/rect.width*CW),y=Math.floor((e.clientY-rect.top)/rect.height*CH);let clue=D.caseClues.find(c=>!g.resolved.has(c.id)&&dist(c,{x,y})<=1);if(clue){g.goal=clue}else g.goal=null;const end=clue?nearestReachable(clue):{x,y};g.path=bfs(g.p,end);if(!g.path.length&&g.goal)interactCase(g.goal)};
+    drawCase();
+  }
+  function caseEvidence(){return D.caseClues.map(c=>`<div class="clue-item ${g.resolved.has(c.id)?'done':''}"><span>${g.resolved.has(c.id)?'✅':'🔍'}</span><span>${g.resolved.has(c.id)?esc(c.name):'Pista por investigar'}</span></div>`).join('')}
+  function moveCase(dx,dy){if(!g||g.ending||g.current)return;let x=g.p.x+dx,y=g.p.y+dy;if(blocked(x,y))return;if(dx>0)g.dir=2;else if(dx<0)g.dir=1;else if(dy<0)g.dir=3;else g.dir=0;g.p={x,y};g.frame=(g.frame+1)%3;drawCase();if(g.goal&&dist(g.p,g.goal)<=1){g.path=[];interactCase(g.goal)}}
+  function nearestReachable(target){const around=[{x:target.x,y:target.y},{x:target.x-1,y:target.y},{x:target.x+1,y:target.y},{x:target.x,y:target.y-1},{x:target.x,y:target.y+1}].filter(p=>!blocked(p.x,p.y));around.sort((a,b)=>dist(a,g.p)-dist(b,g.p));return around[0]||g.p}
+  function bfs(start,destination){const key=p=>`${p.x},${p.y}`;if(blocked(destination.x,destination.y))return[];let queue=[start],seen=new Set([key(start)]),parent={};while(queue.length){const p=queue.shift();if(key(p)===key(destination)){const path=[];let pos=key(p);while(pos!==key(start)){let [x,y]=pos.split(',').map(Number);path.unshift({x,y});pos=parent[pos]}return path}for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){const n={x:p.x+dx,y:p.y+dy};if(!blocked(n.x,n.y)&&!seen.has(key(n))){seen.add(key(n));parent[key(n)]=key(p);queue.push(n)}}}return []}
+  function drawCase(){if(!g||g.mode!=='case')return;const canvas=$('#caseCanvas');if(!canvas)return;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
+    c.fillStyle='#1b3957';c.fillRect(0,0,640,384);
+    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){let u=x*TILE,v=y*TILE;c.fillStyle=(x+y)%2?'#2e5167':'#31586c';c.fillRect(u,v,TILE,TILE);c.fillStyle='#3c687b';c.fillRect(u+1,v+1,30,1);c.fillStyle='#26435d';c.fillRect(u+1,v+30,30,1);
+      if(g.ground.complete&&g.ground.naturalWidth&&x%4===0&&y%3===0){c.save();c.globalAlpha=.18;c.drawImage(g.ground,0,0,16,16,u,v,TILE,TILE);c.restore()}
+      if(x===0||x===CW-1||y===0||y===CH-1){c.fillStyle='#132d52';c.fillRect(u,v,TILE,TILE);c.fillStyle='#416d9a';c.fillRect(u+3,v+3,26,6)}
+      if(obstacles.has(`${x},${y}`)){c.fillStyle='#10233b';c.fillRect(u,v+1,32,31);c.fillStyle='#a87c4c';c.fillRect(u+2,v+3,28,23);c.fillStyle='#c69a53';c.fillRect(u+5,v+5,23,8);c.fillStyle='#785339';c.fillRect(u+5,v+16,23,4);c.fillStyle='#d1b27a';c.fillRect(u+3,v+26,28,3)}
+    }
+    for(let i=2;i<=17;i+=5){c.fillStyle='#91ab55';c.fillRect(i*TILE+6,5*TILE+8,21,15);c.fillStyle='#dce3b8';c.fillRect(i*TILE+10,5*TILE+8,12,3)}
+    for(const clue of D.caseClues){if(g.resolved.has(clue.id))continue;let x=clue.x*TILE,y=clue.y*TILE;c.fillStyle='#eebc53';c.fillRect(x+7,y+5,20,22);c.fillStyle='#fff4bc';c.fillRect(x+10,y+8,14,15);c.fillStyle='#b55b54';c.fillRect(x+12,y+14,10,3);c.fillStyle='#fff5a6';c.fillRect(x+12,y-4,9,7);c.fillStyle='#131b3d';c.font='bold 10px monospace';c.fillText('!',x+13,y+2)}
+    // Sprite original de la versión web: compañero del almacén.
+    if(g.character.complete&&g.character.naturalWidth){c.drawImage(g.character,0,0,32,32,18*TILE,10*TILE,32,32)}
+    const x=g.p.x*TILE,y=g.p.y*TILE;c.fillStyle='#12213c88';c.fillRect(x+5,y+27,23,4);
+    if(!g.avatarCanvas){g.avatarCanvas=document.createElement('canvas');EI.avatarOnCanvas(g.avatarCanvas,EI.state.player?.avatar||EI.state.avatar)}
+    c.drawImage(g.avatarCanvas,x+3,y+(g.frame%2?0:1),27,31);
+  }
+  function interactCase(force){if(!g||g.current||g.ending)return;const clue=force&&dist(g.p,force)<=1?force:D.caseClues.find(c=>!g.resolved.has(c.id)&&dist(g.p,c)<=1);if(!clue){EI.toast('Acércate a una pista para investigarla.');return}g.path=[];g.goal=null;g.current=clue;
+    $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">EVIDENCIA ${g.resolved.size+1} DE 4</div><h3>${clue.icon} ${esc(clue.name)}</h3><p>${esc(clue.desc)}</p><p><strong>${esc(clue.q)}</strong></p>${clue.options.map((s,i)=>`<button class="answer" data-clue-answer="${i}"><span class="answer-key">${'ABC'[i]}</span><span>${esc(s)}</span></button>`).join('')}</div></div>`;
+    $$('[data-clue-answer]').forEach(b=>b.onclick=()=>{const correct=+b.dataset.clueAnswer===clue.a;g.score+=correct?175:50;g.resolved.add(clue.id);displayScore();EI.sound(correct?'win':'bad');$('#caseModal').innerHTML='';g.current=null;const el=$('#caseEvidence');if(el)el.innerHTML=caseEvidence();drawCase();if(g.resolved.size===4)after(showCaseFinal,350)})
+  }
+  function showCaseFinal(){if(!g||g.ending||g.finishing)return;g.finishing=true;g.current={id:'final'};
+    $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">🎖️ MISIÓN FINAL</div><h3>El dictamen de la bodega</h3><p>Has revisado calidad documental, trazabilidad, ciberseguridad y SST.</p><p><strong>${esc(D.caseFinal.q)}</strong></p>${D.caseFinal.options.map((s,i)=>`<button class="answer" data-final="${i}"><span class="answer-key">${'ABCD'[i]}</span><span>${esc(s)}</span></button>`).join('')}</div></div>`;
+    $$('[data-final]').forEach(b=>b.onclick=()=>{const correct=+b.dataset.final===D.caseFinal.a;g.score+=correct?220:45;g.score+=Math.min(80,Math.round(g.remaining*.5));EI.sound(correct?'win':'bad');finish(correct?'¡Investigación concluida! Identificaste la acción integral para resolver los hallazgos.':'Investigación terminada. Recuerda corregir y verificar antes de liberar procesos.')})
+  }
+  function startLogic(){g.questions=D.logic;g.index=0;g.score=0;g.picked=[];g.misses=0;g.locked=false;runCountdown(150,()=>finish(`Resolviste ${g.index} desafíos de lógica antes de finalizar el tiempo.`));renderLogic()}
+  function renderLogic(){if(!g||g.ending)return;if(g.index>=g.questions.length){finish('¡Completaste los seis desafíos de razonamiento!');return}const item=g.questions[g.index];g.locked=false;g.openedAt=now();g.picked=[];g.shuffled=item.type==='order'?shuffle(item.items):null;
+    let inner=item.type==='order'?`<div class="sequence-picked" id="picks">${item.items.map(()=>'<span style="opacity:.28">?</span>').join('')}</div><div class="sequence-picks" id="sequencePicks">${g.shuffled.map((x,i)=>`<button data-pick="${i}">${esc(x)}</button>`).join('')}</div>`:choiceHTML(item);
+    $('#game-content').innerHTML=`${gameGuide('Resuelve el razonamiento planteado. Si es una secuencia, pulsa las etapas en orden correcto.')}
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#bdd2ef;margin-bottom:12px"><span>RETO ${g.index+1} DE ${g.questions.length}</span><span>ERRORES: ${g.misses}</span></div>${progress(g.index,g.questions.length)}
+      <div class="question-card"><div class="question-topic">🧩 ${esc(item.topic)}</div><h2>${esc(item.q)}</h2>${inner}<div id="feedback" class="feedback" style="visibility:hidden"></div></div>`;
+    const done=(success)=>{if(g.locked)return;g.locked=true;if(success){g.score+=130+Math.min(35,Math.round(g.remaining/4));EI.sound('win')}else{g.misses++;EI.sound('bad')}displayScore();const f=$('#feedback');f.style.visibility='visible';f.className='feedback '+(success?'success':'error');f.textContent=(success?'✓ ¡Muy bien! ':'✕ Revisa el razonamiento. ')+item.why;g.index++;after(renderLogic,1100)};
+    if(item.type==='choice')$('#answers').onclick=e=>{const b=e.target.closest('[data-answer]');if(!b||g.locked)return;const ok=+b.dataset.answer===item.a;$$('#answers .answer').forEach(x=>{x.disabled=true;if(+x.dataset.answer===item.a)x.classList.add('correct');else if(+x.dataset.answer===+b.dataset.answer)x.classList.add('wrong')});done(ok)};
+    else $('#sequencePicks').onclick=e=>{const b=e.target.closest('[data-pick]');if(!b||b.disabled||g.locked)return;const val=g.shuffled[+b.dataset.pick];if(val!==item.items[g.picked.length]){g.misses++;EI.sound('bad');const f=$('#feedback');f.style.visibility='visible';f.className='feedback error';f.textContent='Ese no es el siguiente paso. ¡Vuelve a intentarlo!';return}g.picked.push(val);b.disabled=true;b.style.opacity='.35';EI.sound();$('#picks').innerHTML=g.picked.map((x,i)=>`<span>${i+1}. ${esc(x)}</span>`).join('');if(g.picked.length===item.items.length)done(true)};
+  }
+  function startKnowledge(){g.questions=shuffle(D.knowledge).slice(0,12);g.index=0;g.hits=0;g.score=0;g.fifty=false;g.skip=false;g.hidden=[];g.answered=false;g.qStart=now();g.qLeft=18;renderKnowledge();every(()=>{if(!g||g.mode!=='knowledge'||g.ending||g.answered)return;g.qLeft=Math.max(0,18-(now()-g.qStart)/1000);displayTime(g.qLeft);const label=$('#questionSeconds');if(label)label.textContent=`${Math.ceil(g.qLeft)} s`;if(g.qLeft<=0)answerKnowledge(-1)},120)}
+  function renderKnowledge(){if(!g||g.ending)return;if(g.index>=g.questions.length){finish(`Has acertado ${g.hits} de 12 preguntas del gran concurso.`);return}g.answered=false;g.hidden=[];g.qStart=now();g.qLeft=18;const item=g.questions[g.index];displayTime(18);
+    $('#game-content').innerHTML=`${gameGuide('El gran concurso de conocimiento EI: elige A, B, C o D antes de que se agote el tiempo.')}
+      <div style="display:flex;justify-content:space-between;gap:10px;color:#afc8ed;font-size:12px;margin-bottom:12px"><span>PREGUNTA ${g.index+1} / 12 · ${g.hits} ACIERTOS</span><span>⏱ <strong id="questionSeconds">18 s</strong></span></div>${progress(g.index,12)}
+      <div class="question-card"><div class="question-topic">🏆 ${esc(item.topic)}</div><h2>${esc(item.q)}</h2>${choiceHTML(item)}<div id="feedback" class="feedback" style="visibility:hidden"></div></div>
+      <div class="knowledge-tools"><span class="text-muted" style="font-size:12px">💡 Dos comodines disponibles para toda la partida</span><div style="display:flex;gap:9px"><button id="fifty" class="btn btn-blue btn-sm" ${g.fifty?'disabled':''}>50:50 ${g.fifty?'✓':''}</button><button id="skip" class="btn btn-outline btn-sm" ${g.skip?'disabled':''}>⏭ Saltar pregunta</button></div></div>`;
+    $('#answers').onclick=e=>{const b=e.target.closest('[data-answer]');if(!b||g.answered)return;answerKnowledge(+b.dataset.answer)};
+    $('#fifty').onclick=()=>{if(g.fifty||g.answered)return;g.fifty=true;const bad=item.options.map((_,i)=>i).filter(i=>i!==item.a);g.hidden=shuffle(bad).slice(0,2);$$('#answers .answer').forEach(b=>{if(g.hidden.includes(+b.dataset.answer)){b.disabled=true;b.classList.add('eliminated')}});$('#fifty').disabled=true;EI.sound()};
+    $('#skip').onclick=()=>{if(g.skip||g.answered)return;g.skip=true;answerKnowledge(-1,true)};
+  }
+  function answerKnowledge(selected,skipped=false){if(!g||g.answered||g.ending)return;g.answered=true;const item=g.questions[g.index];const correct=selected===item.a;if(correct){g.hits++;g.score+=65+Math.max(0,Math.round(g.qLeft*1.1));EI.sound('win')}else EI.sound('bad');displayScore();
+    $$('[data-answer]').forEach(b=>{b.disabled=true;const i=+b.dataset.answer;if(i===item.a)b.classList.add('correct');else if(i===selected)b.classList.add('wrong')});
+    if($('#fifty'))$('#fifty').disabled=true;if($('#skip'))$('#skip').disabled=true;
+    const f=$('#feedback');if(f){f.style.visibility='visible';f.className='feedback '+(correct?'success':'error');f.textContent=`${correct?'✓ ¡Respuesta correcta!':skipped?'⏭ Pregunta omitida.':selected<0?'⌛ Tiempo agotado.':'✕ Respuesta incorrecta.'} ${item.why}`}
+    g.index++;after(renderKnowledge,1100)
+  }
+  window.EI_GAMES={start,cleanup};
+})();

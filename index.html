@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#07132d">
+  <meta name="description" content="Olimpiadas EI Pixel: cinco retos para aprender, competir y ganar en Electroingeniería.">
+  <title>Olimpiadas EI Pixel | Electroingeniería</title>
+  <link rel="icon" href="assets/marca-ei.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="ambient-stars" aria-hidden="true"></div>
+  <div class="page-shell">
+    <header class="site-header">
+      <button type="button" class="logo-button" id="homeBtn" title="Ir al inicio" aria-label="Ir al inicio"><img src="assets/logo-ei.png" alt="Electroingeniería" class="brand-logo"></button>
+      <div class="header-right">
+        <div class="live-pill"><span class="live-dot"></span><span id="serverLabel">MODO DEMO</span></div>
+        <button id="rankingBtn" class="nav-button" type="button">🏆 <span>Clasificación</span></button>
+        <button id="soundBtn" class="nav-button icon-button" type="button" aria-label="Activar o desactivar sonidos" title="Sonidos">♫</button>
+        <div id="userChip" class="user-chip" hidden></div>
+      </div>
+    </header>
+    <main id="view" aria-live="polite"></main>
+    <footer class="site-footer"><span>OLIMPIADAS EI PIXEL <i>✦</i> 2026</span><span>Aprender también es una aventura.</span><span id="footerStatus">Sistema de juego</span></footer>
+  </div>
+  <div id="modalRoot"></div>
+  <div id="toast" class="toast" aria-live="polite"></div>
+  <script src="js/data.js" defer></script>
+  <script src="js/app.js" defer></script>
+  <script src="js/games.js" defer></script>
+</body>
+</html>
