@@ -1,68 +1,27 @@
-# Olimpiadas EI Pixel — Electroingeniería
+# Olimpiadas EI Pixel Party — V2
 
-Juego institucional de cinco retos: agilidad mental, memoria, caso explorable, lógica y conocimiento. Incluye registro, avatar, exploración de escenarios, preguntas de SST, calidad documental, auditoría, ciberseguridad, matemáticas y logística.
+Mini party game de Electroingeniería con cinco pruebas cortas relacionadas con calidad documental, SST, auditoría, ciberseguridad, matemáticas, trazabilidad y logística.
 
-**Jugar:** https://electroingenieria-sas.github.io/OLIMPIADASEI/
+## Flujo de juego
 
-## Uso real del paquete SuperRetroRanch Free Tier
+1. **Pantalla inicial**: Iniciar partida, elegir personaje, tablero, reglas y clasificación.
+2. **Selección de personaje**: seis roles corporativos (Jefe, Coordinador, Analista, Auxiliar, Técnico y Operativo). Son variaciones del sprite disponible en SuperRetroRanch Free Tier, no seis sprites de personajes diferentes.
+3. **Tablero semanal**: cinco estaciones seleccionables, cada una con briefing, instrucciones, tiempo límite y puntuación máxima.
+4. **Minijuegos**: agilidad mental, memoria, bodega explorable, lógica y conocimiento, con marcadores y temporizadores propios.
+5. **Resultados**: mejor puntaje por prueba y medallas de Oro (850+), Plata (650+), Bronce (400+) y Participación (menos de 400).
 
-Se usan los **53 archivos PNG utilizables** del ZIP que aportó el equipo. Los miles de `.jpg` de `assets_premium_preview` son **vistas previas premium**, no los sprites PNG del nivel gratuito y no se publican.
+La versión pública en GitHub Pages funciona como **demostración local**: no sincroniza puntajes entre dispositivos. Para otorgar premios oficiales es necesario integrar un backend autenticado y validar resultados del lado servidor. El PHP incluido es solo para servidores que lo ejecuten, no para GitHub Pages.
 
-Para cumplir la prohibición de redistribuir las imágenes como archivos independientes, los 53 originales se empaquetan en `assets/superretro/gamepack.bin` (gzip + AES-GCM del lado del cliente). La aplicación carga el paquete con `js/sprites.js` y convierte sus recursos en imágenes pixel art. **No es DRM ni garantiza que no se puedan extraer**; es una medida organizativa para evitar entregar el conjunto como 53 PNG independientes.
+## Ejecutar y verificar
 
-Los sprites se usan en:
+- Servidor estático local: `python -m http.server 8000` y abrir `http://localhost:8000`.
+- Verificación de estructura y preguntas: `node tools/check_party_v2.mjs`.
+- Comprobaciones JS: `node --check js/app.js`, `node --check js/games.js`, `node --check js/characters.js`.
 
-- Galería **VER MIS 53 SPRITES** disponible desde la pantalla de inicio (se muestran todos los recursos del nivel gratuito y su nombre original).
-- Creación de personaje: elección entre el avatar auténtico de SuperRetroRanch y el avatar EI con colores personalizables.
-- Protagonista y compañero de la escena explorable con el sprite real de caminar.
-- Escenarios del campus y las cinco tarjetas de retos, creados con elementos del paquete.
-- Ocho fichas del juego de memoria, con iconos del paquete original.
-- Vegetación y detalles de entorno en el escenario explorable.
+## Deploy
 
-El archivo `assets/superretro/manifest.json` enumera los 53 nombres de origen. Para recompilar el paquete **internamente** se requiere colocar los PNG originales en `assets/superretro` siguiendo su estructura y ejecutar:
+El workflow `.github/workflows/deploy.yml` publica los archivos estáticos con GitHub Actions en GitHub Pages cuando cambia la rama `main`.
 
-```bash
-python -m pip install cryptography
-python tools/build_superretro_pack.py
-```
+## Recursos gráficos
 
-El autor de los recursos es **Gif — SuperRetroRanch**. Licencia *Free Tier*: uso no comercial, modificaciones permitidas, prohibida la redistribución directa y la venta de sprites. Se debe confirmar que la política interna de uso y distribución del proyecto sea compatible con la licencia. Los logos de Electroingeniería se mantienen intactos.
-
-## Despliegue GitHub Actions / Pages
-
-El workflow `.github/workflows/deploy.yml` construye un directorio `dist` con HTML, CSS, JavaScript y assets, y lo publica automáticamente en GitHub Pages tras un push a `main`.
-
-```bash
-python -m http.server 8000
-```
-
-Abrir http://localhost:8000. Para descifrar y mostrar el paquete se necesita `localhost` o HTTPS, navegador moderno y soporte para WebCrypto + `DecompressionStream`.
-
-**Nota de competencia:** GitHub Pages es hosting estático. El ranking actual es una **demostración local** (almacenamiento del navegador). Para premiar por áreas se necesita backend compartido (Supabase o equivalente) y puntuación validada en servidor. El PHP de `server-php/` no se despliega a Pages.
-
-
-## Edición arcade · selección de personajes (noviembre de 2026)
-
-El vestuario incluye **seis variantes seleccionables** basadas en el único personaje
-`male_01` disponible como PNG jugable en **SuperRetroRanch Free Tier v35**:
-Explorador, Inspector, Transportista, Vigía, Tecno y Estratega. Los colores
-de uniforme y tono de piel se aplican en Canvas en tiempo de ejecución;
-se mantiene la opción de sombrero y las animaciones reales del paquete.
-
-Las imágenes JPG de la carpeta `assets_premium_preview/` no son personajes
-utilizables de la edición gratuita y no se distribuyen como sprites.
-
-Las configuraciones del jugador se almacenan con `avatar.preset`, `avatar.skin`
-y `avatar.hat`. En la versión estática de GitHub Pages se guardan localmente,
-y el adaptador PHP conserva esos campos cuando se usa un servidor compatible.
-
-### Interfaz
-
-La edición incorpora vestuario a pantalla completa, campamento pixel,
-cinco niveles con progresión visual, resultados y ranking por áreas.
-El gráfico original del campus y el paquete cifrado de 53 PNG gratuitos se
-conservan, sin hacer pasar las previsualizaciones premium por nuevos personajes.
-
-Crédito de los sprites base: **Gif – SuperRetroRanch Free Tier**.
-Uso previsto: actividad interna no comercial; revise las condiciones del
-licenciante antes de redistribuir el código o el paquete de recursos.
+El recurso `assets/superretro/gamepack.bin` usa 53 sprites gratuitos del paquete aportado para este proyecto. El pack no contiene las otras figuras mostradas en las vistas previas premium; los seis roles se elaboran mediante recoloración dinámica. El uso de recursos debe respetar los términos de su licencia, especialmente si se distribuye en un repositorio público.

@@ -47,6 +47,8 @@ jobs:
           node --check js/games.js
           node --check js/data.js
           node --check js/sprites.js
+          node --check js/characters.js
+          node tools/check_party_v2.mjs
           node -e "const m=require('./assets/superretro/manifest.json'); if(m.sprite_count!==53 || m.sprites.length!==53)process.exit(1); console.log('Sprites verificados:', m.sprite_count)"
           node -e "const fs=require('fs');const b=fs.readFileSync('assets/superretro/gamepack.bin');if(b.subarray(0,5).toString()!=='EISR2' || b.length<50000)process.exit(1);console.log('Pack validado:',b.length,'bytes')"
       - name: Configurar GitHub Pages

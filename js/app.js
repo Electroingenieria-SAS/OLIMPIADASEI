@@ -27,10 +27,87 @@
     const staticPages = /\.github\.io$/i.test(location.hostname);
     try{if(staticPages)throw Error('GitHub Pages: cliente estático');const r=await api('status');state.remote=true;state.config=r.config||{};$('#serverLabel').textContent='COMPETENCIA EN LÍNEA';$('#footerStatus').textContent='Resultados compartidos';const credentials=JSON.parse(localStorage.getItem(credsKey)||'null');if(credentials){try{const x=await api('resume',credentials);state.player=x.player;state.avatar={...state.avatar,...(x.player.avatar||{})};state.scores=x.scores||{}}catch(_){localStorage.removeItem(credsKey)}}}catch(_){state.remote=false;$('#serverLabel').textContent='MODO DEMO LOCAL';$('#footerStatus').textContent='Los puntos se guardan en este navegador';const v=demoData();const p=v.players.find(x=>x.id===v.current);if(p){state.player=p;state.scores={...p.scores}}}
     await window.EI_SPRITES?.load();
-    renderHeader();renderHub();
+    renderHeader();renderTitleScreen();
   }
   function renderHeader(){const e=$('#userChip');if(!state.player){e.hidden=true;e.innerHTML='';return}e.hidden=false;e.innerHTML=`<canvas id="userAvatar" class="mini-head" width="24" height="28"></canvas><span>${esc(state.player.alias)}<small>${esc(state.player.area)}</small></span>`;avatarOnCanvas($('#userAvatar'),state.player.avatar||state.avatar)}
   function total(){return Object.values(state.scores).reduce((a,b)=>a+Number(b||0),0)}
+  const briefs={
+    agility:{icon:'⚡',tag:'DECISIÓN RÁPIDA',duration:'80 s',controls:'Selecciona una de cuatro respuestas.',goal:'Resuelve 10 situaciones breves de calidad, SST, auditoría y logística.'},
+    memory:{icon:'🧠',tag:'MEMORIA VISUAL',duration:'100 s',controls:'Destapa dos cartas por turno.',goal:'Encuentra 8 parejas relacionadas con símbolos y conceptos de la compañía.'},
+    case:{icon:'🔎',tag:'AVENTURA EXPLORABLE',duration:'160 s',controls:'Flechas / WASD para caminar y E para investigar; también puedes tocar el mapa.',goal:'Investiga cuatro hallazgos de una bodega y emite un dictamen final.'},
+    logic:{icon:'🧩',tag:'PUZLES DE PROCESO',duration:'150 s',controls:'Selecciona respuestas o pulsa los pasos en el orden correcto.',goal:'Completa seis retos de inventario, secuencias y mejora continua.'},
+    knowledge:{icon:'🏆',tag:'GRAN CONCURSO',duration:'12 preguntas',controls:'Elige A, B, C o D; dispones de 50:50 y salto, una vez cada uno.',goal:'Responde sobre EI, documentación, SST, ciberseguridad y operaciones.'}
+  };
+  function medalFor(points){return points>=850?{name:'ORO',icon:'🥇',color:'gold'}:points>=650?{name:'PLATA',icon:'🥈',color:'silver'}:points>=400?{name:'BRONCE',icon:'🥉',color:'bronze'}:{name:'PARTICIPACIÓN',icon:'⭐',color:'entry'};}
+  function medalCount(){return Object.values(state.scores).filter(v=>Number(v)>=400).length;}
+  function coverScene(canvas){if(!canvas)return;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;const img=new Image();img.onload=()=>{if(canvas.isConnected)ctx.drawImage(img,0,0,canvas.width,canvas.height)};img.src='assets/pixel/campus-ei.png'}
+  function renderTitleScreen(){
+    window.EI_GAMES?.cleanup();state.run=null;$('#modalRoot').innerHTML='';
+    const avatar=state.player?.avatar||state.avatar;const role=window.EI_CHARACTERS?.normalize(avatar).role;
+    $('#view').innerHTML=`<div class="party-title-view"><section class="party-title-stage">
+      <canvas id="titleScene" width="800" height="450" aria-hidden="true"></canvas>
+      <div class="title-particle one">★</div><div class="title-particle two">✦</div><div class="title-particle three">◆</div>
+      <div class="party-title-content"><span class="party-season">★ ELECTROINGENIERÍA PRESENTA · TEMPORADA 2026 ★</span>
+        <h1><span>OLIMPIADAS</span><strong>EI PIXEL <em>PARTY</em></strong></h1>
+        <p>Cinco días. Cinco minijuegos. Una gran competencia interna de conocimiento, agilidad y trabajo en equipo.</p>
+        <div class="title-role-chip"><canvas id="titleAvatar" width="90" height="90"></canvas><span><small>PARTICIPANTE</small><b>${esc(state.player?.alias||'Aún sin registrar')}</b><small>${esc(role?.name||'Elige tu rol')}</small></span></div>
+        <div class="title-primary-actions"><button class="btn btn-primary" id="titleStart">▶ ${state.player?'CONTINUAR PARTIDA':'COMENZAR A JUGAR'}</button><button class="btn btn-blue" id="titleCharacters">👤 ${state.player?'EDITAR PERSONAJE':'ELEGIR PERSONAJE'}</button></div>
+        <div class="title-secondary-actions"><button id="titleBoard">🗺 TABLERO SEMANAL</button><button id="titleRules">📖 CÓMO JUGAR</button><button id="titleRanking">🏆 CLASIFICACIÓN</button></div>
+      </div><span class="title-stamp">PRESS START · EI ARCADE</span></section>
+      <div class="title-chapter-strip">${D.modes.map((m,i)=>`<div class="chapter-icon" style="--level:${m.color}"><span>${m.icon}</span><small>DÍA ${i+1}</small></div>`).join('')}</div>
+      <p class="title-hint">${state.remote?'Resultados compartidos habilitados.':'MODO DEMOSTRACIÓN · Tus resultados se guardan solo en este navegador.'}</p>
+    </div>`;
+    coverScene($('#titleScene'));
+    const chars=window.EI_CHARACTERS; if(chars){if(!chars.draw($('#titleAvatar'),avatar))window.addEventListener('ei-character-ready',()=>{if($('#titleAvatar'))chars.draw($('#titleAvatar'),avatar)},{once:true});}
+    $('#titleStart').onclick=()=>state.player?renderHub():openRegistration();
+    $('#titleCharacters').onclick=()=>state.player?openWardrobe():openRegistration();
+    $('#titleBoard').onclick=renderBoard;
+    $('#titleRules').onclick=renderHowTo;
+    $('#titleRanking').onclick=renderRanking;
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+  function renderHowTo(){
+    window.EI_GAMES?.cleanup();state.run=null;
+    $('#view').innerHTML=`<section class="party-rules-page"><nav class="game-breadcrumb"><button id="rulesBack">← MENÚ PRINCIPAL</button><span>/</span><span>MANUAL DEL JUGADOR</span></nav>
+    <header class="rules-hero"><span class="section-kicker">★ MANUAL ARCADE EI</span><h1>¿Cómo se juega?</h1><p>Selecciona un rol, completa los cinco minijuegos y acumula puntos. Cada prueba otorga hasta 1.000 puntos y una medalla según el resultado.</p></header>
+    <div class="rules-summary"><div>🎮 <b>5</b><small>Minijuegos</small></div><div>⭐ <b>5.000</b><small>Puntos máximos</small></div><div>🏅 <b>4</b><small>Niveles de medalla</small></div></div>
+    <div class="rules-grid">${D.modes.map(m=>{const b=briefs[m.id];return `<article class="rule-card" style="--accent:${m.color}"><img src="assets/pixel/mode-${m.id}.png" alt=""><div><span>DÍA ${m.day} · ${b.duration}</span><h2>${b.icon} ${esc(m.title)}</h2><p>${esc(b.goal)}</p><small>${esc(b.controls)}</small></div></article>`}).join('')}</div>
+    <div class="rules-prizes"><h2>Escala de recompensas</h2><div class="rules-medals"><span>🥇 ORO · 850–1.000 PT</span><span>🥈 PLATA · 650–849 PT</span><span>🥉 BRONCE · 400–649 PT</span><span>⭐ PARTICIPACIÓN · 0–399 PT</span></div><p>Para premios oficiales, la organización debe validar resultados y utilizar un ranking compartido con controles contra manipulación. GitHub Pages por sí solo conserva partidas de demostración local.</p></div>
+    <button id="rulesStart" class="btn btn-primary">▶ IR AL TABLERO</button></section>`;
+    $('#rulesBack').onclick=renderTitleScreen;$('#rulesStart').onclick=renderBoard;
+  }
+  function renderBoard(){
+    window.EI_GAMES?.cleanup();state.run=null;const done=Object.keys(state.scores).length;
+    const coords=[[9,65],[28,27],[50,67],[72,23],[91,61]];
+    $('#view').innerHTML=`<section class="party-board-view"><nav class="game-breadcrumb"><button id="boardBack">← MENÚ PRINCIPAL</button><span>/</span><span>TABLERO SEMANAL</span></nav>
+      <div class="board-heading"><div><span class="section-kicker">◆ UNA SEMANA, CINCO MUNDOS</span><h1>El tablero de las olimpiadas</h1><p>Visita cada estación, descubre su desafío y consigue la mayor puntuación de tu área.</p></div><div class="board-score"><span>MI MARCADOR</span><strong>${total().toLocaleString('es-CO')} <small>PT</small></strong><span>${done}/5 PRUEBAS JUGADAS</span></div></div>
+      <div class="board-land"><div class="board-land-sky"></div><svg class="board-journey-path" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true"><path d="M90 260 Q150 50 280 110 T500 260 T720 90 T910 250"/></svg>
+      ${D.modes.map((m,i)=>{const completed=state.scores[m.id]!==undefined,locked=!unlocked(m);return `<button class="board-stop ${completed?'completed':''} ${locked?'locked':''}" style="--accent:${m.color};left:${coords[i][0]}%;top:${coords[i][1]}%" data-board-mode="${m.id}" ${locked?'disabled':''} aria-label="Día ${m.day}: ${esc(m.title)}">
+        <span class="board-stop-ring"><span class="board-stop-icon">${m.icon}</span></span><span class="board-stop-label"><small>ESTACIÓN ${m.day}</small><b>${esc(m.title)}</b><em>${completed?'✓ '+state.scores[m.id]+' PT':locked?'BLOQUEADA':'JUGAR'}</em></span></button>`}).join('')}
+      <div class="board-ground"></div></div>
+      <div class="board-legend"><span><i class="legend-gold"></i> Disponible</span><span><i class="legend-green"></i> Completado</span><span><i class="legend-grey"></i> Cerrado por calendario</span></div>
+      <div class="board-bottom"><button id="boardRoster" class="btn btn-outline">👤 ${state.player?'EDITAR ROL':'ELEGIR ROL'}</button><button id="boardRules" class="btn btn-outline">📖 REGLAS</button><button id="boardRanking" class="btn btn-primary">🏆 CLASIFICACIÓN</button></div>
+    </section>`;
+    $$('.board-stop').forEach(b=>b.onclick=()=>openGameBriefing(b.dataset.boardMode));
+    $('#boardBack').onclick=renderTitleScreen;$('#boardRoster').onclick=()=>state.player?openWardrobe():openRegistration();$('#boardRules').onclick=renderHowTo;$('#boardRanking').onclick=renderRanking;
+  }
+  function openGameBriefing(mode){
+    const m=D.modes.find(x=>x.id===mode);if(!m)return;
+    if(!unlocked(m)){toast('Este reto todavía no está habilitado por calendario.');return;}
+    const b=briefs[mode],prior=state.scores[mode];const medal=prior!==undefined?medalFor(prior):null;
+    $('#modalRoot').innerHTML=`<div class="modal-backdrop" role="presentation"><div class="modal briefing-modal" role="dialog" aria-modal="true" aria-labelledby="briefTitle">
+    <button class="brief-close" id="briefClose" aria-label="Cerrar">✕</button><div class="brief-visual"><img src="assets/pixel/mode-${mode}.png" alt="Escenario de ${esc(m.title)}"><div class="brief-day">DÍA ${m.day} / 5</div></div>
+    <div class="brief-copy"><span class="section-kicker">${b.icon} ${b.tag}</span><h2 id="briefTitle">${esc(m.title)}</h2><p>${esc(b.goal)}</p>
+    <div class="brief-facts"><span>⏱ <strong>${b.duration}</strong><small>DURACIÓN</small></span><span>⭐ <strong>1.000 PT</strong><small>MÁXIMO</small></span><span>🏅 <strong>${medal?medal.name:'SIN MEDALLA'}</strong><small>MEJOR RESULTADO</small></span></div>
+    <div class="brief-control"><strong>¿Cómo jugar?</strong><p>${esc(b.controls)}</p></div>
+    <div class="brief-footer"><button id="briefBack" class="btn btn-outline">VOLVER</button><button id="briefStart" class="btn btn-primary">▶ ${state.player?'INICIAR RETO':'CREAR PARTICIPANTE'}</button></div>
+    </div></div></div>`;
+    const close=()=>$('#modalRoot').innerHTML='';$('#briefClose').onclick=close;$('#briefBack').onclick=close;
+    $('#briefStart').onclick=()=>{close();state.player?startMode(mode):openRegistration()};
+    $('#modalRoot').querySelector('.modal-backdrop').addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))close()});
+    $('#briefClose').focus();
+  }
+
   const spriteUrl=(path)=>window.EI_SPRITES?.urlFromFilename(path)||'';
   const spriteRibbon=()=>D.memory.map(m=>`<span class="pixel-chip" title="${esc(m.name)}"><img src="${spriteUrl(m.sprite)}" alt="" loading="lazy"></span>`).join('');
   function showSpriteGallery(){
@@ -56,59 +133,82 @@
     if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;
     const done=Object.keys(state.scores).length, next=D.modes.find(m=>state.scores[m.id]===undefined)||D.modes[0],
       avatar=state.player?.avatar||state.avatar;
-    const selected=window.EI_CHARACTERS?.normalize(avatar).role||{name:'Explorador',role:'Operaciones',color:'#35c7bb'};
-    $('#view').innerHTML=`<div class="arcade-lobby hub">
-      <div class="game-path"><span class="path-dot"></span> CAMPAMENTO EI <span class="path-arrow">/</span> TEMPORADA 2026 <span class="path-arrow">/</span> CINCO DESAFÍOS</div>
-      <section class="arcade-hero">
+    const selected=window.EI_CHARACTERS?.normalize(avatar).role||{name:'Operativo',role:'Ejecución en campo',color:'#f183c9'};
+    const modeTags={
+      agility:['Calidad documental','SST','Cálculo'],
+      memory:['Conceptos EI','Símbolos','Agilidad'],
+      case:['Bodega','Hallazgos','Decisiones'],
+      logic:['Secuencias','Inventario','Proceso'],
+      knowledge:['Empresa','Auditoría','Cultura EI']
+    };
+    $('#view').innerHTML=`<div class="arcade-lobby hub party-shell">
+      <div class="party-marquee"><span class="marquee-star">★</span> OLIMPIADAS EI · SEMANA DE RETOS · FORMATO PARTY GAME CORPORATIVO <span class="marquee-star">★</span></div>
+      <div class="game-path"><span class="path-dot"></span> CAMPAMENTO EI <span class="path-arrow">/</span> TEMPORADA 2026 <span class="path-arrow">/</span> CINCO JUEGOS DEL DÍA</div>
+      <section class="arcade-hero party-hero">
         <div class="arcade-hero-copy">
-          <div class="arcade-eyebrow"><span class="online-star">✦</span> LA AVENTURA DEL CONOCIMIENTO</div>
-          <h1>OLIMPIADAS <strong>EI <span>PIXEL</span></strong></h1>
-          <p>Un mundo de desafíos hecho para Electroingeniería. Demuestra tu rapidez, descubre pistas y escala hasta lo más alto del podio.</p>
+          <div class="arcade-eyebrow"><span class="online-star">✦</span> ESTILO PARTY ARCADE · COMPETENCIA INTERNA</div>
+          <h1>OLIMPIADAS <strong>EI <span>PIXEL PARTY</span></strong></h1>
+          <p>Vive una competencia de una semana al estilo de un juego de fiesta: turnos rápidos, desafíos cortos, estética arcade premium y contenido 100% enfocado en Electroingeniería.</p>
           <div class="arcade-actions">
-            <button type="button" class="btn btn-primary arcade-primary" id="heroAction">${state.player?'▶ SEGUIR JUGANDO':'▶ CREAR MI PERSONAJE'}</button>
-            <button type="button" class="btn btn-outline" id="heroRanking">🏆 CLASIFICACIÓN</button>
+            <button type="button" class="btn btn-primary arcade-primary" id="heroAction">${state.player?'▶ CONTINUAR PARTIDA':'▶ CREAR PARTICIPANTE'}</button>
+            <button type="button" class="btn btn-outline" id="heroRanking">🏆 VER CLASIFICACIÓN</button>
+            <button type="button" class="btn btn-outline" id="heroProfile">👤 ${state.player?'MI PERSONAJE':'ELEGIR ROL'}</button>
           </div>
-          <div class="arcade-hero-meta"><span>★ 5 MUNDOS</span><span>◷ TIEMPO LÍMITE</span><span>◆ PREMIOS POR ÁREA</span></div>
+          <div class="arcade-hero-meta"><span>★ 5 JUEGOS DEL DÍA</span><span>◷ RETOS CORTOS Y ÁGILES</span><span>◆ PREMIACIÓN POR ÁREA</span></div>
+          <div class="party-summary-bar">
+            <div><small>PROGRESO</small><strong>${done}/5</strong></div>
+            <div><small>PUNTAJE TOTAL</small><strong>${total().toLocaleString('es-CO')} PT</strong></div>
+            <div><small>PRÓXIMO RETO</small><strong>${esc(next.title)}</strong></div>
+          </div>
         </div>
         <div class="arcade-hero-world">
           <canvas id="heroCanvas" width="400" height="260" aria-label="Escenario pixel art del campus EI"></canvas>
-          <div class="world-hud"><span>⚔ MODO AVENTURA</span><span>● 01</span></div>
-          <div class="stage-avatar"><canvas id="mainAvatarCanvas" width="112" height="112" aria-label="Personaje elegido"></canvas><div class="avatar-nameplate">${esc(state.player?.alias||selected.name)}<small>${esc(selected.role)}</small></div></div>
+          <div class="world-hud"><span>⚔ TABLERO PRINCIPAL</span><span>SEMANA 01</span></div>
+          <div class="stage-avatar"><canvas id="mainAvatarCanvas" width="112" height="112" aria-label="Personaje elegido"></canvas><div class="avatar-nameplate">${esc(state.player?.alias||selected.name)}<small>${esc(selected.name)} · ${esc(selected.role)}</small></div></div>
         </div>
       </section>
-      <div class="arcade-overview">
-        <button class="arcade-profile" id="heroProfile" type="button" aria-label="Elegir o modificar personaje">
+
+      <div class="arcade-overview party-overview">
+        <button class="arcade-profile" id="heroProfileMini" type="button" aria-label="Elegir o modificar personaje">
           <span class="profile-pixel"><canvas id="profileCanvas" width="60" height="60"></canvas></span>
-          <span class="profile-copy"><small>TU PERSONAJE</small><strong>${esc(state.player?.alias||'Elige a tu héroe')}</strong><span>${state.player?'Cambiar vestuario y personaje':'Seis personajes para elegir'}</span></span><span class="profile-arrow">›</span>
+          <span class="profile-copy"><small>PARTICIPANTE ACTIVO</small><strong>${esc(state.player?.alias||'Selecciona tu rol')}</strong><span>${state.player?esc(selected.name)+' · '+esc(selected.role):'Jefe, Coordinador, Analista, Auxiliar, Técnico u Operativo'}</span></span><span class="profile-arrow">›</span>
         </button>
         <div class="arcade-stat"><span class="stat-emoji">✦</span><span><small>MI PUNTAJE</small><strong>${total().toLocaleString('es-CO')} <em>PT</em></strong></span></div>
-        <div class="arcade-stat"><span class="stat-emoji">◈</span><span><small>RETOS SUPERADOS</small><strong>${done} <em>/ 5</em></strong></span></div>
-        <button class="arcade-mini-action" type="button" id="arcadeGallery"><span>▦</span><span>VER RECURSOS PIXEL<small>Biblioteca de sprites</small></span></button>
+        <div class="arcade-stat"><span class="stat-emoji">◈</span><span><small>JUEGOS SUPERADOS</small><strong>${done} <em>/ 5</em></strong></span></div>
+        <button class="arcade-mini-action" type="button" id="arcadeGallery"><span>▦</span><span>VER ASSETS DEL PAQUETE<small>Sprites y recursos pixel</small></span></button>
       </div>
-      <div class="arcade-section-title" id="modeSection"><div><span class="section-kicker">◈ EL MAPA DE LA COMPETENCIA</span><h2>Selecciona tu siguiente nivel</h2></div><span class="arcade-caption">5 MUNDOS · 1.000 PUNTOS POR NIVEL</span></div>
-      <section class="modes arcade-modes" id="modeCards" aria-label="Cinco mundos del videojuego">${D.modes.map(m=>{
-        const completed=state.scores[m.id]!==undefined,locked=!unlocked(m);
-        return `<button class="mode-card arcade-mode ${locked?'locked':''}" style="--accent:${m.color}" data-mode="${m.id}" ${locked?'disabled':''}>
-          <div class="mode-scene"><img class="mode-illustration" src="assets/pixel/mode-${m.id}.png" alt="Escenario de ${esc(m.title)}" loading="lazy"><span class="mode-illustration-mark">${m.icon}</span><span class="arcade-level">NIVEL ${String(m.day).padStart(2,'0')}</span></div>
-          <div class="mode-body"><h3>${esc(m.title)}</h3><span class="mode-desc">${esc(m.subtitle)}</span><div class="mode-bottom"><span>${locked?'🔒 Bloqueado':completed?'✓ Completado':'▶ JUGAR'}</span><strong>${completed?Number(state.scores[m.id]).toLocaleString('es-CO')+' PT':'1.000 PT'}</strong></div></div>
+
+      <section class="party-map-teaser"><div><span class="section-kicker">★ CAMINO A LA VICTORIA</span><h2>Explora el tablero de la semana</h2><p>Cinco estaciones conectadas, un reto diferente por jornada y una meta: alcanzar el podio de tu área.</p></div><button type="button" class="btn btn-primary" id="openWeeklyBoard">🗺 ABRIR TABLERO SEMANAL</button></section>
+      <div class="arcade-section-title" id="modeSection"><div><span class="section-kicker">◈ EL TABLERO PRINCIPAL</span><h2>Selecciona tu siguiente minijuego</h2></div><span class="arcade-caption">5 RETOS · 1.000 PUNTOS POR PARTIDA · EXPERIENCIA ARCADE</span></div>
+      <section class="modes arcade-modes arcade-premium-grid" id="modeCards" aria-label="Cinco mundos del videojuego">${D.modes.map(m=>{
+        const completed=state.scores[m.id]!==undefined,locked=!unlocked(m),active=next.id===m.id;
+        return `<button class="mode-card arcade-mode premium-mode ${locked?'locked':''} ${active?'is-next':''}" style="--accent:${m.color}" data-mode="${m.id}" ${locked?'disabled':''}>
+          <div class="mode-scene"><img class="mode-illustration" src="assets/pixel/mode-${m.id}.png" alt="Escenario de ${esc(m.title)}" loading="lazy"><span class="mode-illustration-mark">${m.icon}</span><span class="arcade-level">JUEGO ${String(m.day).padStart(2,'0')}</span>${active?'<span class="next-ribbon">SIGUE</span>':''}</div>
+          <div class="mode-body"><h3>${esc(m.title)}</h3><span class="mode-desc">${esc(m.description)}</span><div class="mode-pill-row">${(modeTags[m.id]||[]).map(t=>`<span class="mode-pill">${esc(t)}</span>`).join('')}</div><div class="mode-bottom"><span>${locked?'🔒 Bloqueado':completed?'✓ Puntaje guardado':'▶ Iniciar minijuego'}</span><strong>${completed?Number(state.scores[m.id]).toLocaleString('es-CO')+' PT':'1.000 PT'}</strong></div></div>
         </button>`}).join('')}</section>
-      <div class="arcade-lower">
-        <section class="arcade-panel quest-panel"><div class="arcade-panel-head"><div><span class="section-kicker">REGISTRO DE AVENTURAS</span><h3>Tu progreso de la semana</h3></div><span class="quest-progress">${done}/5 COMPLETADOS</span></div>
+
+      <div class="arcade-lower party-lower">
+        <section class="arcade-panel quest-panel premium-panel"><div class="arcade-panel-head"><div><span class="section-kicker">PROGRESO DE LA SEMANA</span><h3>Panel de avance</h3></div><span class="quest-progress">${done}/5 COMPLETADOS</span></div>
           <div class="arcade-meter"><span style="width:${done*20}%"></span></div>
           <div class="quest-steps">${D.modes.map(m=>`<div class="quest-step ${state.scores[m.id]!==undefined?'done':''}"><div>${state.scores[m.id]!==undefined?'✓':m.day}</div><span>${esc(m.title)}</span></div>`).join('')}</div>
-          <div class="next-quest"><span>PRÓXIMA MISIÓN</span><strong>${esc(next.title)}</strong><button type="button" id="nextGame" class="btn btn-blue btn-sm">IR AL RETO ↗</button></div>
+          <div class="next-quest"><span>PRÓXIMO JUEGO DEL DÍA</span><strong>${esc(next.title)}</strong><button type="button" id="nextGame" class="btn btn-blue btn-sm">INICIAR ↗</button></div>
+          <div class="party-medal-count">🏅 <strong>${medalCount()}</strong> medallas obtenidas · Juega para subir de nivel</div>
+          <div class="party-tip-box"><strong>Temáticas EI:</strong> calidad documental, SST, auditoría, ciberseguridad, logística, matemáticas y generalidades de la empresa.</div>
         </section>
-        <section class="arcade-panel leaderboard-panel"><div class="arcade-panel-head"><div><span class="section-kicker">SALÓN DE LA FAMA</span><h3>Tabla de campeones</h3></div><span class="pixel-trophy">🏆</span></div>
+        <section class="arcade-panel leaderboard-panel premium-panel"><div class="arcade-panel-head"><div><span class="section-kicker">SALÓN DE CAMPEONES</span><h3>Podio actual</h3></div><span class="pixel-trophy">🏆</span></div>
           <div id="hubRanking" class="empty-state">Consultando jugadores…</div><button type="button" class="btn btn-outline btn-sm" id="moreRanking">VER CLASIFICACIÓN COMPLETA ↗</button>
+          <div class="party-prize-strip"><div><small>PREMIO</small><strong>Ganador por área</strong></div><div><small>FORMATO</small><strong>Semana de olimpiadas</strong></div></div>
         </section>
       </div>
-      <div class="arcade-footer-note">ARTE PIXEL: SUPERRETRO RANCH FREE TIER, GIF · SEIS VARIANTES DE VESTUARIO GENERADAS A PARTIR DEL PERSONAJE ORIGINAL · PARTICIPACIÓN INTERNA NO COMERCIAL</div>
+      <div class="arcade-footer-note">DISEÑO PARTY ARCADE PROFESIONAL · CONTENIDO CORPORATIVO ELECTROINGENIERÍA · ESTILO VISUAL RETRO PREMIUM · PARTICIPACIÓN INTERNA NO COMERCIAL</div>
     </div>`;
     $('#heroAction').onclick=()=>{if(!state.player)openRegistration();else $('#modeCards').scrollIntoView({behavior:'smooth',block:'center'})};
     $('#heroRanking').onclick=renderRanking;$('#heroProfile').onclick=()=>state.player?openWardrobe():openRegistration();
+    $('#heroProfileMini').onclick=()=>state.player?openWardrobe():openRegistration();
     $('#moreRanking').onclick=renderRanking;$('#arcadeGallery').onclick=showSpriteGallery;
-    $('#nextGame').onclick=()=>startMode(next.id);
-    $$('.mode-card').forEach(b=>b.onclick=()=>startMode(b.dataset.mode));
+    $('#nextGame').onclick=()=>openGameBriefing(next.id);
+    $('#openWeeklyBoard').onclick=renderBoard;
+    $$('.mode-card').forEach(b=>b.onclick=()=>openGameBriefing(b.dataset.mode));
     const chars=window.EI_CHARACTERS;
     if(chars){chars.animate($('#mainAvatarCanvas'),avatar);const profileCanvas=$('#profileCanvas');if(!chars.draw(profileCanvas,avatar)){const repaint=()=>{if(profileCanvas.isConnected)chars.draw(profileCanvas,avatar)};window.addEventListener('ei-character-ready',repaint,{once:true})}}
     drawHero();loadHubRanking();
@@ -152,23 +252,23 @@
     const picked=()=>roles.find(r=>r.id===current.preset)||roles[0];
     $('#view').innerHTML=`<section class="character-view">
       <nav class="game-breadcrumb"><button type="button" id="characterBack">← VOLVER AL CAMPAMENTO</button><span>/</span><span>${editing?'MI PERSONAJE':'NUEVO PARTICIPANTE'}</span></nav>
-      <div class="character-title"><div><span class="section-kicker">✦ SALA DE PERSONAJES</span><h1>${editing?'Personaliza tu héroe':'Elige tu personaje'}</h1><p>Seis estilos con paletas de uniforme, accesorios y animaciones reales del paquete pixel art.</p></div><div class="character-counter">06 <span>AVATARES</span></div></div>
+      <div class="character-title"><div><span class="section-kicker">✦ SELECCIÓN DE PARTICIPANTES</span><h1>${editing?'Personaliza tu rol':'Elige tu rol'}</h1><p>Seis roles corporativos inspirados en la estructura de la empresa, con animaciones pixel art y vestuario diferenciado.</p></div><div class="character-counter">06 <span>ROLES</span></div></div>
       <div class="character-content">
         <div class="character-roster" id="characterRoster" role="group" aria-label="Selecciona un personaje">${roles.map((r,i)=>`<button type="button" class="character-choice ${r.id===current.preset?'selected':''}" data-character="${r.id}" style="--role:${r.color}" aria-pressed="${r.id===current.preset}">
            <span class="character-choice-art"><canvas width="75" height="75" data-preview="${r.id}" aria-hidden="true"></canvas></span><span class="character-choice-info"><strong>${esc(r.name)}</strong><small>${esc(r.role)}</small></span><span class="choice-check">✓</span>
          </button>`).join('')}</div>
         <div class="character-preview-panel"><div class="scene-label"><span>● PERSONAJE SELECCIONADO</span><span id="roleCode">01 / 06</span></div>
           <div class="character-landscape"><span class="landscape-sun"></span><span class="landscape-hill"></span><span class="character-floor"></span><canvas id="rosterHero" width="160" height="160" aria-label="Previsualización animada del personaje seleccionado"></canvas></div>
-          <div class="character-caption"><h2 id="roleName"></h2><p id="roleDesc"></p><span class="character-description">PERSONAJE PIXEL ORIGINAL + VARIANTE DE VESTUARIO</span></div>
+          <div class="character-caption"><h2 id="roleName"></h2><p id="roleDesc"></p><span class="character-description">SPRITE ORIGINAL + ROL CORPORATIVO PERSONALIZADO</span></div>
           <div class="skin-selector"><span>TONO DEL PERSONAJE</span><div id="skinButtons">${C.palettes.map((x,i)=>`<button type="button" class="skin-swatch ${Number(current.skin)===i?'active':''}" data-skin="${i}" aria-label="Tono ${i+1}" aria-pressed="${Number(current.skin)===i}" style="--skin:${x.skin}"></button>`).join('')}</div></div>
-          <label class="hat-toggle"><input type="checkbox" id="characterHat"> Usar sombrero retro</label>
+          <label class="hat-toggle"><input type="checkbox" id="characterHat"> Usar casco / sombrero de trabajo</label>
         </div>
-        <form class="character-register" id="characterForm"><span class="section-kicker">${editing?'EDITAR VESTUARIO':'CREAR PARTICIPANTE'}</span><h2>${editing?'Guardar apariencia':'Completa tu registro'}</h2>
+        <form class="character-register" id="characterForm"><span class="section-kicker">${editing?'EDITAR PARTICIPANTE':'CREAR PARTICIPANTE'}</span><h2>${editing?'Guardar apariencia':'Completa tu registro'}</h2>
           ${editing?`<div class="registered-name"><small>JUGADOR</small><strong>${esc(state.player.alias)}</strong><span>${esc(state.player.area)}</span></div>`:`<div class="field"><label for="regName">Nombre completo</label><input id="regName" maxlength="80" minlength="4" required placeholder="Nombre y apellido" autocomplete="name"></div>
            <div class="field"><label for="regAlias">Alias de jugador</label><input id="regAlias" maxlength="24" minlength="3" required placeholder="Ej. PixelJuan" autocomplete="nickname"></div>
            <div class="field"><label for="regArea">Área de trabajo</label><select id="regArea" required><option value="">Selecciona el área</option>${D.areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select></div>`}
           <div class="register-reminder"><span>✦</span><p>${editing?'Los cambios de vestuario no modifican tu puntuación.':'Tu personaje participará en los cinco retos y aparecerá en tu perfil.'}</p></div>
-          <p class="modal-helper">Los seis estilos usan el personaje disponible en SuperRetroRanch Free Tier; las variaciones de colores y sombrero se aplican dentro del videojuego.</p>
+          <p class="modal-helper">Los seis roles se construyen sobre el sprite base disponible en SuperRetroRanch Free Tier; el videojuego aplica los uniformes, colores y variaciones en tiempo real.</p>
           <div class="modal-error" id="characterError" role="alert"></div>
           <button class="btn btn-primary character-submit" id="characterSubmit" type="submit">${editing?'✓ GUARDAR PERSONAJE':'▶ COMENZAR AVENTURA'}</button>
         </form>
@@ -220,7 +320,21 @@
   async function register(p){if(state.remote){const x=await api('register',p);state.player=x.player;state.avatar={...state.avatar,...(x.player.avatar||{})};state.scores=x.scores||{};localStorage.setItem(credsKey,JSON.stringify({id:x.player.id,access_key:x.access_key}));return x}
     const d=demoData();const id='demo-'+Date.now().toString(36);const u={...p,id,scores:{}};d.players.push(u);d.current=id;saveDemo(d);state.player=u;state.scores={};return {player:u}}
   function showCredential(secret,id){$('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true" style="max-width:560px"><div class="modal-header"><h2>✓ ¡Tu avatar está listo!</h2></div><div class="modal-body"><p>Guarda esta clave privada. Permite recuperar tu perfil si cambias de navegador.</p><div style="padding:16px;background:#061a3d;border:1px dashed #70a3df;border-radius:8px;word-break:break-all;font-family:monospace;font-size:15px"><strong>${esc(id)}</strong><br>${esc(secret)}</div><p class="modal-helper">No compartas esta clave: permite acceder a tus resultados.</p><div class="reg-bottom"><button id="copyCred" class="btn btn-blue">Copiar datos</button><button id="okCred" class="btn btn-primary">¡A jugar!</button></div></div></div></div>`;$('#copyCred').onclick=()=>{navigator.clipboard?.writeText('ID: '+id+'\nClave: '+secret);toast('Datos copiados')};$('#okCred').onclick=()=>$('#modalRoot').innerHTML=''}
-  function gameScaffold(mode){const m=D.modes.find(x=>x.id===mode);$('#view').innerHTML=`<div class="game-shell"><nav class="game-breadcrumb"><button id="gameBack">← Inicio</button><span>/</span><span>Día ${m.day}: ${esc(m.title)}</span></nav><section class="game-header"><div><div class="section-kicker">DESAFÍO ${m.day} DE 5</div><h1><img src="assets/pixel/mode-${m.id}.png" class="game-header-thumb" alt="" aria-hidden="true">${esc(m.title)}</h1><p>${esc(m.subtitle)} · ${esc(m.description)}</p></div><div class="game-header-meta"><div class="stat-box"><span class="stat-label">Tiempo</span><span id="gameTime" class="stat-value">--:--</span></div><div class="stat-box"><span class="stat-label">Puntos</span><span id="gamePoints" class="stat-value">0</span></div></div></section><section class="game-main"><div id="game-content"></div></section></div>`;$('#gameBack').onclick=()=>{if(confirm('¿Salir del desafío? Se perderá el progreso de esta ronda.'))renderHub()};window.scrollTo({top:0,behavior:'smooth'})}
+  function gameScaffold(mode){
+    const m=D.modes.find(x=>x.id===mode),b=briefs[mode];
+    $('#view').innerHTML=`<section class="game-shell party-arena" style="--arena:${m.color}">
+      <nav class="game-breadcrumb"><button id="gameBack">← TABLERO</button><span>/</span><span>DÍA ${m.day} · ${esc(m.title)}</span></nav>
+      <div class="arena-status"><span class="arena-label">★ MINIJUEGO ${m.day}/5</span><span class="arena-mode">${esc(b.tag)}</span><button type="button" class="arena-exit" id="gameQuit">SALIR ✕</button></div>
+      <header class="game-header arena-head"><div><div class="section-kicker">${m.icon} DESAFÍO DEL DÍA</div><h1>${esc(m.title)}</h1><p>${esc(m.description)}</p></div>
+        <div class="game-header-meta"><div class="stat-box"><span class="stat-label">⏱ TIEMPO</span><span id="gameTime" class="stat-value">--:--</span></div><div class="stat-box"><span class="stat-label">⭐ PUNTOS</span><span id="gamePoints" class="stat-value">0</span></div></div></header>
+      <div class="arena-time-track"><span id="arenaTimeMeter" style="width:100%"></span></div>
+      <section class="game-main party-game-main"><div id="game-content"></div></section>
+      <div class="arena-foot"><span>★ OLIMPIADAS EI PIXEL PARTY</span><span>HASTA 1.000 PUNTOS · ${esc(m.title)}</span></div>
+    </section>`;
+    const leave=()=>{if(confirm('¿Salir del desafío? Perderás el progreso de esta ronda.')){window.EI_GAMES?.cleanup();state.run=null;renderBoard()}};
+    $('#gameBack').onclick=leave;$('#gameQuit').onclick=leave;
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
   async function startMode(mode){const meta=D.modes.find(m=>m.id===mode);if(!meta||!unlocked(meta)){toast('Este desafío aún no está disponible');return}if(!state.player){openRegistration();return}if(state.busy)return;const played=state.scores[mode]!==undefined;
     if(played&&state.remote&&!confirm('Ya completaste este reto oficialmente. ¿Deseas jugar de nuevo en PRÁCTICA? No cambiará tu puntaje.'))return;
     state.busy=true;let token=null,practice=played&&state.remote;
@@ -230,8 +344,17 @@
   async function finish(mode,score,details){if(!state.run||state.run.mode!==mode)return;const run=state.run;state.run=null;if(window.EI_GAMES)window.EI_GAMES.cleanup();let saved=true,practice=run.practice;
     const points=Math.max(0,Math.min(1000,Math.round(score)));
     if(!practice){if(state.remote){try{const x=await api('finish',{id:state.player.id,mode,token:run.token,score:points,duration:Math.ceil((Date.now()-run.started)/1000),access_key:credentials().access_key});state.scores=x.scores||state.scores}catch(err){saved=false;toast('Sin guardar: '+err.message)}}else{const d=demoData();const p=d.players.find(x=>x.id===state.player.id);if(p){p.scores[mode]=Math.max(p.scores[mode]||0,points);state.scores={...p.scores};saveDemo(d)}}}
-    const m=D.modes.find(x=>x.id===mode);sound('win');$('#view').innerHTML=`<div class="game-shell"><div class="game-main"><div class="results"><div class="result-medal">${points>=850?'🏆':points>=550?'🥇':'⭐'}</div><div class="section-kicker" style="justify-content:center">DESAFÍO COMPLETADO</div><h1>${esc(m.title)}</h1><div class="big-score">${points.toLocaleString('es-CO')}</div><div style="color:#f5d46d;font-weight:900">DE 1.000 PUNTOS</div><p>${esc(details||'¡Has terminado la misión!')}</p>${practice?'<p class="pill gold">MODO PRÁCTICA · Esta puntuación no modifica tu ranking.</p>':saved?'<p class="pill green">✓ Puntaje registrado en tu clasificación</p>':'<p class="pill gold">⚠ Puntaje no registrado: hubo un problema de conexión.</p>'}<div class="result-actions"><button class="btn btn-primary" id="resultHome">← Volver al mapa</button><button class="btn btn-blue" id="resultRanking">🏆 Ver clasificación</button></div></div></div></div>`;$('#resultHome').onclick=renderHub;$('#resultRanking').onclick=renderRanking;renderHeader();window.scrollTo({top:0,behavior:'smooth'})}
-  async function renderRanking(){if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;$('#view').innerHTML='<div class="ranking-page"><div class="section-kicker">MARCADOR EN VIVO</div><h1>🏆 Clasificación de las Olimpiadas</h1><p class="text-muted">Los puntajes corresponden a los cinco retos; gana el mayor acumulado dentro de cada área.</p><div id="rankBody" class="panel">Cargando clasificación…</div><div style="margin:23px 0"><button id="rankBack" class="btn btn-outline">← Volver a la aventura</button></div></div>';$('#rankBack').onclick=renderHub;
+    const m=D.modes.find(x=>x.id===mode), medal=medalFor(points);sound('win');
+    $('#view').innerHTML=`<section class="party-results"><div class="results-confetti">✦ ★ ✦ ★ ✦</div><div class="result-stage"><div class="section-kicker">MISIÓN COMPLETADA · DÍA ${m.day}</div><h1>${esc(m.title)}</h1>
+      <div class="result-coin ${medal.color}"><span>${medal.icon}</span><strong>${medal.name}</strong></div>
+      <p class="result-label">PUNTAJE OBTENIDO</p><strong class="result-score">${points.toLocaleString('es-CO')} <small>/ 1.000 PT</small></strong>
+      <p class="result-detail">${esc(details||'¡Has terminado la misión!')}</p>
+      <div class="result-status">${practice?'MODO PRÁCTICA · Este puntaje no cambia tu ranking.':saved?'✓ Puntaje registrado correctamente.':'⚠ Hubo un problema y el puntaje no se guardó.'}</div>
+      <div class="result-medal-scale"><div class="${points>=400?'won':''}">🥉<small>400+</small></div><div class="${points>=650?'won':''}">🥈<small>650+</small></div><div class="${points>=850?'won':''}">🥇<small>850+</small></div></div>
+      <div class="result-actions"><button class="btn btn-primary" id="resultBoard">🗺 VOLVER AL TABLERO</button><button class="btn btn-blue" id="resultRetry">↻ VOLVER A JUGAR</button><button class="btn btn-outline" id="resultRanking">🏆 CLASIFICACIÓN</button></div>
+      </div></section>`;
+    $('#resultBoard').onclick=renderBoard;$('#resultRetry').onclick=()=>openGameBriefing(mode);$('#resultRanking').onclick=renderRanking;renderHeader();window.scrollTo({top:0,behavior:'smooth'})}
+  async function renderRanking(){if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;$('#view').innerHTML=`<div class="ranking-page"><div class="section-kicker">${state.remote?'MARCADOR COMPARTIDO':'MODO DEMO LOCAL'}</div><h1>🏆 Clasificación de las Olimpiadas</h1><p class="text-muted">Los puntos corresponden a los cinco retos. ${state.remote?'Resultados compartidos entre participantes.':'Estos resultados solo existen en este navegador; no sirven para entregar premios oficiales.'}</p><div id="rankBody" class="panel">Cargando clasificación…</div><div style="margin:23px 0"><button id="rankBack" class="btn btn-outline">← Volver a la aventura</button></div></div>`;$('#rankBack').onclick=renderTitleScreen;
     try{state.ranking=state.remote?(await api('rankings')).rankings:rankFromDemo();renderRankContent()}catch(err){$('#rankBody').textContent='No se pudo cargar: '+err.message}
   }
   function renderRankContent(){const r=state.ranking||[],areas=['Todos',...new Set(r.map(x=>x.area))].sort((a,b)=>a==='Todos'?-1:b==='Todos'?1:a.localeCompare(b));if(!areas.includes(state.areaFilter))state.areaFilter='Todos';const filtered=state.areaFilter==='Todos'?r:r.filter(x=>x.area===state.areaFilter);
@@ -241,7 +364,7 @@
     <div><h3>Primer lugar por área</h3>${leaders.length?leaders.map(l=>`<div class="rank-winner"><span>🏅 <b>${esc(l.area)}</b><br><small>${esc(l.alias)}</small></span><strong>${l.total.toLocaleString('es-CO')} PT</strong></div>`).join(''):'<div class="empty-state">El podio está esperando a sus primeros jugadores.</div>'}<p class="modal-helper">Las clasificaciones se actualizan al finalizar cada prueba. Los premios deben validarse por la organización.</p></div></div>`;
     $$('.area-btn').forEach(b=>b.onclick=()=>{state.areaFilter=b.dataset.area;renderRankContent()})
   }
-  $('#homeBtn').onclick=renderHub;$('#rankingBtn').onclick=renderRanking;$('#soundBtn').onclick=()=>{state.sound=!state.sound;$('#soundBtn').textContent=state.sound?'♫ ON':'♫ OFF';sound('tap');toast(state.sound?'Sonidos activados':'Sonidos desactivados')};$('#soundBtn').textContent='♫ OFF';
-  window.EI={state,D,$,$$,esc,shuffle,toast,sound,gameScaffold,finish,renderHub,startMode,avatarOnCanvas};
+  $('#homeBtn').onclick=renderTitleScreen;$('#rankingBtn').onclick=renderRanking;$('#soundBtn').onclick=()=>{state.sound=!state.sound;$('#soundBtn').textContent=state.sound?'♫ ON':'♫ OFF';sound('tap');toast(state.sound?'Sonidos activados':'Sonidos desactivados')};$('#soundBtn').textContent='♫ OFF';
+  window.EI={state,D,$,$$,esc,shuffle,toast,sound,gameScaffold,finish,renderHub,renderTitleScreen,renderBoard,openGameBriefing,startMode,avatarOnCanvas};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initialize);else initialize();
 })();

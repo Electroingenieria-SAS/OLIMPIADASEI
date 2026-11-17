@@ -6,12 +6,12 @@
 window.EI_CHARACTERS = (() => {
   const base = 'characters/males/male_01';
   const presets = [
-    {id:'operaciones',name:'Explorador',role:'Operaciones',color:'#35c7bb',coat:'#24a99c',hat:true,accent:'⚙',desc:'Siempre listo para entrar en acción.'},
-    {id:'calidad',name:'Inspector',role:'Calidad',color:'#a88aff',coat:'#805ad5',hat:false,accent:'✓',desc:'Detecta cada detalle en el proceso.'},
-    {id:'logistica',name:'Transportista',role:'Logística',color:'#f7b85d',coat:'#d48728',hat:true,accent:'▣',desc:'Encuentra la ruta más eficiente.'},
-    {id:'sst',name:'Vigía',role:'Seguridad y SST',color:'#f17d8d',coat:'#d55264',hat:true,accent:'✚',desc:'Identifica peligros y protege al equipo.'},
-    {id:'tecnologia',name:'Tecno',role:'Ciberseguridad',color:'#6cc0ff',coat:'#387dda',hat:false,accent:'⌘',desc:'Resuelve retos de tecnología.'},
-    {id:'auditoria',name:'Estratega',role:'Auditoría',color:'#98e28a',coat:'#58a66a',hat:false,accent:'◆',desc:'Orden y criterio en cada decisión.'}
+    {id:'jefe',name:'Jefe',role:'Liderazgo estratégico',color:'#ffcf52',coat:'#d9a321',hat:false,accent:'★',desc:'Marca el rumbo, toma decisiones y ve el panorama completo.'},
+    {id:'coordinador',name:'Coordinador',role:'Coordinación de procesos',color:'#ff8f6a',coat:'#db6c41',hat:true,accent:'◎',desc:'Conecta equipos, organiza recursos y mantiene el ritmo.'},
+    {id:'analista',name:'Analista',role:'Análisis y control',color:'#8e9dff',coat:'#5a69d8',hat:false,accent:'◆',desc:'Observa, compara y detecta hallazgos con criterio.'},
+    {id:'auxiliar',name:'Auxiliar',role:'Apoyo operativo',color:'#5fe2b0',coat:'#2ab280',hat:true,accent:'✦',desc:'Da soporte al proceso y responde con agilidad y orden.'},
+    {id:'tecnico',name:'Técnico',role:'Tecnología y soporte',color:'#64c7ff',coat:'#318ad9',hat:true,accent:'⌘',desc:'Resuelve incidentes, protege sistemas y mantiene el juego activo.'},
+    {id:'operativo',name:'Operativo',role:'Ejecución en campo',color:'#f183c9',coat:'#cf57a7',hat:true,accent:'▣',desc:'Actúa en primera línea y convierte la estrategia en resultados.'}
   ];
   const palettes=[
     {skin:'#f4cca1',skinShadow:'#eea160'},

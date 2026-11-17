@@ -7,7 +7,7 @@
   function cleanup(){intervals.forEach(clearInterval);timeouts.forEach(clearTimeout);intervals=[];timeouts=[];if(keys)window.removeEventListener('keydown',keys);keys=null;g=null}
   function now(){return performance.now()}
   function displayScore(){if($('#gamePoints')&&g)$('#gamePoints').textContent=Math.min(1000,Math.round(g.score||0)).toLocaleString('es-CO')}
-  function displayTime(s){if($('#gameTime'))$('#gameTime').textContent=`${Math.floor(Math.max(s,0)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(s,0)%60).toString().padStart(2,'0')}`}
+  function displayTime(s){if($('#gameTime'))$('#gameTime').textContent=`${Math.floor(Math.max(s,0)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(s,0)%60).toString().padStart(2,'0')}`;const meter=$('#arenaTimeMeter');if(meter&&g){const duration=g.mode==='knowledge'?18:(D.modes.find(x=>x.id===g.mode)?.time||100);meter.style.width=Math.max(0,Math.min(100,s/duration*100))+'%';meter.classList.toggle('low',s/duration<.2)}}
   function runCountdown(seconds,onZero){g.endAt=now()+seconds*1000;const tick=()=>{if(!g)return;const remain=Math.max(0,(g.endAt-now())/1000);g.remaining=remain;displayTime(remain);if(remain<=0){clearInterval(timer);onZero()}};const timer=every(tick,150);tick()}
   function finish(details){if(!g||g.ending)return;g.ending=true;const {mode,score}=g;EI.finish(mode,Math.round(score),details)}
   function gameGuide(message){return `<div class="game-guide">🎯 ${message}</div>`}

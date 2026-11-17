@@ -9,6 +9,8 @@ window.EI_DATA = {
     {id:'knowledge',day:5,title:'Conocimiento',subtitle:'El gran concurso EI',icon:'🏆',color:'#ff90c0',time:240,description:'Trivia con comodines de calidad, SST y más.'}
   ],
   agility: [
+    {topic:'General EI',q:'¿Cuál es el lema institucional de Electroingeniería?',options:['Conectados con el futuro','Trabajando con buena energía','Todo al mismo tiempo','Construyendo en silencio'],a:1,why:'El lema visible de Electroingeniería es «trabajando con buena energía».'},
+    {topic:'Trazabilidad EI',q:'En recepción, una caja llega sin lote obligatorio. ¿Qué conviene hacer?',options:['Inventar el lote','Verificar y registrar el lote antes de cerrar recepción','Despacharla de inmediato','Ocultar la etiqueta'],a:1,why:'El registro correcto del lote permite mantener la trazabilidad.'},
     {topic:'Calidad documental',q:'Encuentras un formato sin código ni versión. ¿Qué haces?',options:['Lo usas igual','Consultas la versión vigente','Le inventas un código','Lo borras sin avisar'],a:1,why:'Se debe utilizar la versión controlada y vigente.'},
     {topic:'SST',q:'Detectas una superficie resbalosa sin señalizar.',options:['Pasas rápido','Aíslas y reportas el riesgo','Tomas una foto y te vas','Esperas al siguiente turno'],a:1,why:'Se controla o señaliza el peligro y se reporta.'},
     {topic:'Ciberseguridad',q:'Un correo extraño te pide tu contraseña.',options:['La envías','Abres el adjunto','Reportas el intento','Reenvías el correo a todos'],a:2,why:'Nunca compartas credenciales y reporta el phishing.'},
@@ -54,6 +56,9 @@ window.EI_DATA = {
     {topic:'Mejora continua',type:'order',q:'Ordena un ciclo sencillo de mejora.',items:['Identificar problema','Analizar causas','Definir acciones','Implementar','Verificar resultados'],why:'La mejora requiere análisis antes de la acción y evaluación posterior.'}
   ],
   knowledge: [
+    {topic:'General EI',q:'¿Qué frase acompaña al logotipo de Electroingeniería?',options:['Trabajando con buena energía','La energía nos mueve juntos','Ingeniería sin límites','Calidad a toda costa'],a:0,why:'El lema institucional impreso junto al logo dice «trabajando con buena energía».'},
+    {topic:'Herramientas EI',q:'¿Cuál de estos sistemas internos se usa para apoyar la formación de colaboradores?',options:['Aula EI','Inventario físico en papel','Buzón temporal','Correo personal'],a:0,why:'Aula EI es una herramienta interna de formación y capacitación.'},
+    {topic:'Procesos EI',q:'Antes de liberar un pedido, detectas un lote sin identificar. ¿Qué es lo correcto?',options:['Omitir el campo','Verificar y completar la trazabilidad','Cambiar el pedido por otro','Borrar el registro'],a:1,why:'La trazabilidad exige conservar datos completos y verificables.'},
     {topic:'Calidad documental',q:'¿Qué permite identificar de forma única una versión de un documento?',options:['Su tamaño','Su código y revisión','El color del papel','La impresora'],a:1,why:'El código y la revisión facilitan la identificación y el control.'},
     {topic:'Auditoría',q:'¿Qué es una evidencia objetiva?',options:['Una opinión personal','Información verificable relacionada con un criterio','Un rumor','Una suposición'],a:1,why:'La evidencia debe poder verificarse.'},
     {topic:'SST',q:'¿Qué significa SST?',options:['Sistema de Soporte Técnico','Seguridad y Salud en el Trabajo','Servicio de Suministros y Transporte','Seguimiento Sectorial Total'],a:1,why:'SST corresponde a Seguridad y Salud en el Trabajo.'},
