@@ -344,3 +344,44 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 @media(max-width:620px){.party-title-stage{padding:35px 22px;min-height:570px}.party-season{font:8px/1.7 var(--pixel)}.party-title-content h1{font-size:23px}.party-title-content>p{font-size:13px}.title-role-chip canvas{height:67px;width:67px}.title-primary-actions{flex-direction:column}.title-primary-actions .btn{width:100%}.title-secondary-actions{display:grid;grid-template-columns:1fr;gap:8px}.title-secondary-actions button{min-height:41px}.title-stamp{display:none}.chapter-icon{min-width:65px;min-height:65px}.chapter-icon span{font-size:23px}.chapter-icon small{font-size:7px}.title-chapter-strip{gap:8px}.party-map-teaser{flex-direction:column;align-items:start;padding:20px}.party-map-teaser .btn{width:100%}.board-heading{align-items:start;flex-direction:column}.board-score{width:100%}.board-land{min-height:630px}.board-journey-path{display:none}.board-land::before{background-size:auto 100%;opacity:.18}.board-stop{position:relative;left:auto!important;top:auto!important;transform:none!important;max-width:none;width:100%;flex-direction:row;justify-content:start;gap:12px;padding:13px 20px}.board-stop-ring{flex:none;width:64px;height:64px;border-radius:20px}.board-stop-label{flex:1;max-width:none;min-width:0;align-items:flex-start}.board-stop-label small{font-size:7px}.board-land .board-stop:first-of-type{margin-top:14px}.board-bottom .btn{flex:1}.rules-grid{grid-template-columns:1fr}.rule-card img{height:118px}.rule-card h2{font-size:16px}.rules-summary>div{min-width:130px}.rules-hero{padding:24px}.rules-hero h1{font-size:20px}.brief-facts{grid-template-columns:repeat(3,1fr)}.brief-facts>span{padding:8px}.brief-facts strong{font-size:11px}.arena-status{gap:7px;padding:11px}.arena-mode{display:none}.arena-label{font-size:7px}.arena-head{padding:16px}.arena-head h1{font-size:17px}.party-game-main .question-card{padding:17px 10px}.arena-foot{font-size:7px}.result-coin{width:120px;height:120px}.result-coin span{font-size:45px}.result-stage{padding:28px 15px}.results-confetti{letter-spacing:10px;font-size:23px}}
 @media(prefers-reduced-motion:reduce){.title-particle{animation:none}}
 .arena-time-track span.low{background:linear-gradient(90deg,#ff785f,#ffba5d);box-shadow:0 0 17px #ff634e66}
+
+/* Personajes oficiales: atlas 64×80, NEAREST y accesorios intactos. */
+.official-roster .character-roster{gap:12px}
+.official-roster .character-choice{min-height:142px;align-items:center;border-width:2px}
+.official-roster .character-choice-art{width:82px;min-width:82px;height:103px;background:radial-gradient(ellipse at 50% 70%,#335e91,#101c37);border-color:#5c88bc;overflow:hidden}
+.official-roster .character-choice-art canvas{width:76px;height:90px;image-rendering:pixelated}
+.official-roster .character-choice-info strong{font-size:15px;color:#fff}
+.character-preview-twin{display:flex;align-items:center;gap:6px;color:#a5c5e7;font-size:10px;line-height:1.3}
+.character-preview-twin canvas{width:36px;height:45px;image-rendering:pixelated;flex:0 0 auto}
+.official-roster .character-landscape{height:310px}
+.official-roster .character-landscape canvas{width:176px;height:209px;image-rendering:pixelated;filter:drop-shadow(0 8px 0 #0e1c3380)}
+.official-preview-controls{padding:8px 15px 20px;display:grid;gap:11px;border-top:1px solid #355b87}
+.preview-action-row,.preview-directions{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.preview-action-row button,.preview-directions button{background:#122a50;border:1px solid #486d9f;padding:7px 9px;color:#c9e3fa;border-radius:7px;font-size:11px;font-weight:900;transition:background .15s,transform .15s}
+.preview-action-row button:hover,.preview-directions button:hover{background:#245082;transform:translateY(-2px)}
+.preview-action-row button.active,.preview-directions button.active{background:#f5d66c;color:#0d254e;border-color:#ffecad}
+.preview-directions button{font-size:15px;min-width:39px}
+.winner-pixel{display:block;image-rendering:pixelated;margin:0 auto -5px;width:140px;height:160px;filter:drop-shadow(0 12px 4px #091327)}
+.arena-mini-avatar{display:grid;place-items:center;border-radius:8px;background:#09264b;border:1px solid #567fac;padding:3px;flex:0 0 auto}
+.arena-mini-avatar canvas{height:46px;width:38px;image-rendering:pixelated}
+.board-player-preview{position:absolute;z-index:3;left:6%;top:43%;display:flex;flex-direction:column;align-items:center;justify-content:end;pointer-events:none;filter:drop-shadow(1px 3px 0 #13233f)}
+.board-player-preview canvas{width:82px;height:100px;image-rendering:pixelated}
+.board-player-preview span{font:8px/1.4 var(--pixel);color:#102a48;border:1px solid #f7eab1;border-radius:5px;background:#ffe075;padding:5px 7px;text-shadow:none}
+.case-dpad button{touch-action:none;user-select:none;-webkit-user-select:none}
+.case-dpad button:active{background:#ffe17b;color:#061a35}
+.case-touch-actions{display:grid;gap:8px;margin-top:13px}
+.case-touch-actions button{width:100%;touch-action:none}
+#caseCanvas{image-rendering:pixelated;touch-action:manipulation}
+@media(max-width:600px){
+  .official-roster .character-choice{min-height:120px;padding:8px;gap:7px}
+  .official-roster .character-choice-art{width:58px;min-width:58px;height:75px}
+  .official-roster .character-choice-art canvas{width:54px;height:68px}
+  .official-roster .character-choice-info strong{font-size:12px}
+  .character-preview-twin canvas{width:24px;height:30px}
+  .character-preview-twin span{font-size:9px}
+  .official-roster .character-landscape{height:245px}
+  .official-roster .character-landscape canvas{width:145px;height:174px}
+  .board-player-preview{left:3%;top:45%}
+  .board-player-preview canvas{width:54px;height:67px}
+  .board-player-preview span{font-size:6px}
+}

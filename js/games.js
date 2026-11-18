@@ -1,10 +1,10 @@
 'use strict';
 (() => {
   const EI=window.EI,D=EI.D,$=EI.$,$$=EI.$$,esc=EI.esc,shuffle=EI.shuffle;
-  let g=null,intervals=[],timeouts=[],keys=null;
+  let g=null,intervals=[],timeouts=[],keys=null,caseCleanup=null;
   const after=(fn,ms)=>{const t=setTimeout(fn,ms);timeouts.push(t);return t};
   const every=(fn,ms)=>{const t=setInterval(fn,ms);intervals.push(t);return t};
-  function cleanup(){intervals.forEach(clearInterval);timeouts.forEach(clearTimeout);intervals=[];timeouts=[];if(keys)window.removeEventListener('keydown',keys);keys=null;g=null}
+  function cleanup(){caseCleanup?.();caseCleanup=null;intervals.forEach(clearInterval);timeouts.forEach(clearTimeout);intervals=[];timeouts=[];if(keys)window.removeEventListener('keydown',keys);keys=null;g=null}
   function now(){return performance.now()}
   function displayScore(){if($('#gamePoints')&&g)$('#gamePoints').textContent=Math.min(1000,Math.round(g.score||0)).toLocaleString('es-CO')}
   function displayTime(s){if($('#gameTime'))$('#gameTime').textContent=`${Math.floor(Math.max(s,0)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(s,0)%60).toString().padStart(2,'0')}`;const meter=$('#arenaTimeMeter');if(meter&&g){const duration=g.mode==='knowledge'?18:(D.modes.find(x=>x.id===g.mode)?.time||100);meter.style.width=Math.max(0,Math.min(100,s/duration*100))+'%';meter.classList.toggle('low',s/duration<.2)}}
@@ -28,61 +28,155 @@
    <div class="memory-board" id="memoryBoard">${g.deck.map((x,i)=>{const on=g.flipped.includes(i)||g.matched.has(x.id);return `<button class="memory-tile ${on?'revealed':''} ${g.matched.has(x.id)?'matched':''}" data-card="${i}" ${g.matched.has(x.id)?'disabled':''} aria-label="${on?esc(x.name):'Carta oculta'}">${on?`<span>${window.EI_SPRITES?.urlFromFilename(x.sprite)?`<img class="memory-icon" src="${window.EI_SPRITES.urlFromFilename(x.sprite)}" alt="">`:x.icon}<span class="memory-caption">${esc(x.name)}</span></span>`:'<span class="memory-back">EI</span>'}</button>`}).join('')}</div>`;
     $('#memoryBoard').onclick=e=>{const el=e.target.closest('[data-card]');if(!el||g.locked)return;const i=+el.dataset.card;if(g.flipped.includes(i)||g.matched.has(g.deck[i].id))return;g.flipped.push(i);EI.sound();renderMemory();if(g.flipped.length===2){g.locked=true;g.moves++;const [a,b]=g.flipped;const matched=g.deck[a].id===g.deck[b].id;if(!matched)g.mistakes++;after(()=>{if(!g||g.mode!=='memory')return;if(matched){g.matched.add(g.deck[a].id);EI.sound('win')}else EI.sound('bad');g.flipped=[];g.locked=false;g.score=Math.max(0,Math.min(990,g.matched.size*100+Math.round(g.remaining*.9)-g.mistakes*10));displayScore();if(g.matched.size===8){g.score=Math.max(400,Math.min(1000,650+Math.round(g.remaining*3.4)-g.mistakes*24));finish(`¡Memoria completada en ${g.moves} intentos y ${g.mistakes} errores!`)}else renderMemory()},matched?350:820)}};
   }
-  // Caso explorable: escenario de 20 x 12 casillas, movimiento con teclado o clic.
+  // Mapa explorable EI: 640x384 píxeles; físicas en el punto de los pies,
+  // animación oficial por cuadros y navegación con teclado, táctil y clic.
   const CW=20,CH=12,TILE=32;
   const obstacles=new Set();for(let y of [2,3,7,8])for(let x of [5,6,7,13,14,15])obstacles.add(`${x},${y}`);
   function blocked(x,y){return x<1||x>=CW-1||y<1||y>=CH-1||obstacles.has(`${x},${y}`)}
   function dist(a,b){return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)}
-  function startCase(){g.p={x:2,y:10};g.dir=0;g.frame=0;g.resolved=new Set();g.score=0;g.current=null;g.path=[];g.finishing=false;g.caseTiles=new Image();g.caseTiles.onload=()=>drawCase();g.caseTiles.src='assets/pixel/case-tiles.png';g.character=new Image();g.character.src=window.EI_SPRITES?.urlFromFilename('characters/males/male_01/walk/male_01_hat_walk_32x32_3frames.png')||'assets/character-walk.png';g.character.onload=()=>drawCase();g.ground=new Image();g.ground.src='assets/ground-tiles.png';g.ground.onload=()=>drawCase();
-    g.plants=['crops/tomato/icon/tomato_icon_16x16_4frames.png','crops/berry/icon/berry_icon_16x16.png','crops/carrot/icon/carrot_icon_16x16_2frames.png'].map(path=>{const im=new Image();im.onload=()=>drawCase();im.src=window.EI_SPRITES?.urlFromFilename(path)||'';return im;});
-    runCountdown(160,()=>finish(`Recogiste ${g.resolved.size} de 4 evidencias del caso.`));renderCase();
-    keys=e=>{if(!g||g.mode!=='case'||g.ending||g.current)return;const keysMap={ArrowUp:[0,-1],w:[0,-1],W:[0,-1],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowRight:[1,0],d:[1,0],D:[1,0]};if(keysMap[e.key]){e.preventDefault();g.path=[];moveCase(...keysMap[e.key])}else if(e.key==='e'||e.key==='E'||e.key===' '){e.preventDefault();interactCase()}};
-    window.addEventListener('keydown',keys);every(()=>{if(!g||g.mode!=='case'||g.current||!g.path.length)return;const next=g.path.shift();moveCase(next.x-g.p.x,next.y-g.p.y);if(!g.path.length&&g.goal)interactCase(g.goal)},150);
+  const keyDirections={arrowup:'up',w:'up',arrowdown:'down',s:'down',arrowleft:'left',a:'left',arrowright:'right',d:'right'};
+  function startCase(){
+    const character=EI.state.player?.avatar||EI.state.avatar;
+    g.p={x:2,y:10};g.resolved=new Set();g.score=0;g.current=null;g.path=[];g.goal=null;g.finishing=false;g.ending=false;
+    g.pressed=new Set();g.touched=new Set();g.running=false;g.frameTime=0;
+    g.motion=new window.EI_HEROES.FootMover({x:2.5*TILE,y:10.5*TILE,boxW:18,boxH:10,
+      speed:96,runSpeed:164,solidAt:(x,y)=>blocked(Math.floor(x/TILE),Math.floor(y/TILE))});
+    g.anim=new window.EI_HEROES.Animator(window.EI_HEROES.resolve(character));
+    g.caseTiles=new Image();g.caseTiles.onload=()=>drawCase();g.caseTiles.src='assets/pixel/case-tiles.png';
+    g.plants=['crops/tomato/icon/tomato_icon_16x16_4frames.png','crops/berry/icon/berry_icon_16x16.png','crops/carrot/icon/carrot_icon_16x16_2frames.png'].map(path=>{
+      const im=new Image();im.onload=()=>drawCase();im.src=window.EI_SPRITES?.urlFromFilename(path)||'';return im;
+    });
+    runCountdown(160,()=>finish(`Recogiste ${g.resolved.size} de 4 evidencias del caso.`));
+    renderCase();
+    const onKeyDown=e=>{
+      if(!g||g.mode!=='case'||g.ending)return;
+      const target=e.target;if(target?.closest?.('input,textarea,select'))return;
+      const key=e.key.toLowerCase(),direction=keyDirections[key];
+      if(direction){e.preventDefault();g.pressed.add(direction);g.path=[];g.goal=null;}
+      else if(key==='shift'){g.running=true;}
+      else if((key==='e'||key===' ')&&!e.repeat){e.preventDefault();interactCase()}
+    };
+    const onKeyUp=e=>{if(!g)return;const direction=keyDirections[e.key.toLowerCase()];if(direction)g.pressed.delete(direction);if(e.key==='Shift')g.running=false};
+    const onBlur=()=>{g?.pressed?.clear();if(g)g.running=false};
+    window.addEventListener('keydown',onKeyDown);window.addEventListener('keyup',onKeyUp);window.addEventListener('blur',onBlur);
+    let raf=0,last=0;
+    const loop=stamp=>{
+      if(!g||g.mode!=='case'||g.ending)return;
+      const elapsed=last?Math.min(.05,(stamp-last)/1000):0;last=stamp;
+      const avatar=EI.state.player?.avatar||EI.state.avatar;
+      g.anim.setCharacter(window.EI_HEROES.resolve(avatar));
+      let dx=0,dy=0,run=g.running;
+      if(!g.current){
+        if(g.pressed.has('right')||g.touched.has('right'))dx++;
+        if(g.pressed.has('left')||g.touched.has('left'))dx--;
+        if(g.pressed.has('down')||g.touched.has('down'))dy++;
+        if(g.pressed.has('up')||g.touched.has('up'))dy--;
+        if(!dx&&!dy&&g.path.length){
+          const target=g.path[0],tx=(target.x+.5)*TILE,ty=(target.y+.5)*TILE;
+          const vx=tx-g.motion.x,vy=ty-g.motion.y;
+          if(Math.hypot(vx,vy)<3){g.motion.x=tx;g.motion.y=ty;g.path.shift();}
+          else{dx=vx;dy=vy;}
+        }
+        const result=g.motion.move(dx,dy,elapsed,run);
+        const actuallyMoving=Math.hypot(result.x,result.y)>.01;
+        g.anim.setMovement(actuallyMoving?dx:0,actuallyMoving?dy:0,run);
+        g.p={x:Math.floor(g.motion.x/TILE),y:Math.floor(g.motion.y/TILE)};
+        if(g.goal&&!g.path.length&&nearClue(g.goal)){const clue=g.goal;g.goal=null;interactCase(clue);}
+      }else if(!g.anim.once){g.anim.setMovement(0,0,false)}
+      g.anim.update(elapsed*1000);
+      drawCase();raf=requestAnimationFrame(loop);
+    };
+    raf=requestAnimationFrame(loop);
+    caseCleanup=()=>{cancelAnimationFrame(raf);window.removeEventListener('keydown',onKeyDown);window.removeEventListener('keyup',onKeyUp);window.removeEventListener('blur',onBlur);};
   }
-  function renderCase(){if(!g||g.ending)return;$('#game-content').innerHTML=`${gameGuide('Recorre la bodega con WASD o las flechas. Acércate a una pista y pulsa E, o tócala para caminar hacia ella.')}
-    <div class="case-layout"><div><div class="case-canvas-wrap" id="caseWrap"><canvas width="640" height="384" id="caseCanvas" aria-label="Mapa interactivo de la bodega"></canvas><div id="caseModal"></div></div><div class="case-note" style="text-align:center">🕹️ Flechas / WASD para moverte · E o botón INVESTIGAR · Clic sobre el mapa para desplazarte</div></div>
-      <aside class="case-sidebar"><h3>📋 Lista de hallazgos</h3><div id="caseEvidence">${caseEvidence()}</div><p class="case-note">Encuentra cuatro pistas y decide cómo responder. Después podrás resolver el caso final.</p><div class="control-pad"><span class="blank"></span><button data-move="0,-1" aria-label="Arriba">▲</button><span class="blank"></span><button data-move="-1,0" aria-label="Izquierda">◀</button><button data-interact="true" aria-label="Investigar">E</button><button data-move="1,0" aria-label="Derecha">▶</button><span class="blank"></span><button data-move="0,1" aria-label="Abajo">▼</button><span class="blank"></span></div><button id="caseInspect" class="btn btn-primary btn-sm" style="margin-top:11px;width:100%">🔎 INVESTIGAR</button></aside></div>`;
-    $$('.control-pad button[data-move]').forEach(b=>b.onclick=()=>{if(!g.current){g.path=[];moveCase(...b.dataset.move.split(',').map(Number))}});$('#caseInspect').onclick=()=>interactCase();$('[data-interact]').onclick=()=>interactCase();
-    $('#caseCanvas').onclick=e=>{if(g.current)return;const canvas=e.currentTarget;const rect=canvas.getBoundingClientRect();const x=Math.floor((e.clientX-rect.left)/rect.width*CW),y=Math.floor((e.clientY-rect.top)/rect.height*CH);let clue=D.caseClues.find(c=>!g.resolved.has(c.id)&&dist(c,{x,y})<=1);if(clue){g.goal=clue}else g.goal=null;const end=clue?nearestReachable(clue):{x,y};g.path=bfs(g.p,end);if(!g.path.length&&g.goal)interactCase(g.goal)};
+  function renderCase(){
+    if(!g||g.ending)return;
+    $('#game-content').innerHTML=`${gameGuide('Explora la bodega EI, encuentra cuatro evidencias y responde correctamente. Usa WASD/flechas, Shift para correr y E para investigar.')}
+      <div class="case-layout"><div><div class="case-canvas-wrap" id="caseWrap">
+      <canvas width="640" height="384" id="caseCanvas" role="img" aria-label="Bodega interactiva con el personaje EI seleccionado"></canvas><div id="caseModal"></div></div>
+      <div class="case-note" style="text-align:center">WASD / FLECHAS · SHIFT: correr · E / ESPACIO: interactuar · CLIC: desplazarse</div></div>
+      <aside class="case-sidebar"><h3>📋 Evidencias de auditoría</h3><div id="caseEvidence">${caseEvidence()}</div>
+      <p class="case-note">Acércate a un hallazgo y presiona Investigar. Las colisiones se calculan en los pies, sin bloquear toda la silueta del personaje.</p>
+      <div class="control-pad case-dpad" aria-label="Controles táctiles">
+      <span class="blank"></span><button type="button" data-touch="up" aria-label="Caminar arriba">▲</button><span class="blank"></span>
+      <button type="button" data-touch="left" aria-label="Caminar izquierda">◀</button><button type="button" id="caseTouchInteract" aria-label="Investigar">E</button><button type="button" data-touch="right" aria-label="Caminar derecha">▶</button>
+      <span class="blank"></span><button type="button" data-touch="down" aria-label="Caminar abajo">▼</button><span class="blank"></span></div>
+      <div class="case-touch-actions"><button type="button" id="caseTouchRun" class="btn btn-blue btn-sm">⇧ CORRER (mantener)</button><button type="button" id="caseInspect" class="btn btn-primary btn-sm">🔎 INVESTIGAR</button></div>
+      </aside></div>`;
+    $$('[data-touch]').forEach(btn=>{
+      const direction=btn.dataset.touch;
+      btn.addEventListener('pointerdown',e=>{if(g.current)return;e.preventDefault();btn.setPointerCapture(e.pointerId);g.touched.add(direction);g.path=[];g.goal=null;});
+      for(const name of ['pointerup','pointercancel','lostpointercapture'])btn.addEventListener(name,()=>g?.touched?.delete(direction));
+    });
+    const run=$('#caseTouchRun');run.addEventListener('pointerdown',e=>{e.preventDefault();run.setPointerCapture(e.pointerId);g.running=true});
+    for(const name of ['pointerup','pointercancel','lostpointercapture'])run.addEventListener(name,()=>{if(g)g.running=false});
+    $('#caseInspect').onclick=()=>interactCase();$('#caseTouchInteract').onclick=()=>interactCase();
+    $('#caseCanvas').onclick=e=>{
+      if(!g||g.current)return;
+      const rect=e.currentTarget.getBoundingClientRect();const x=Math.floor((e.clientX-rect.left)/rect.width*CW),y=Math.floor((e.clientY-rect.top)/rect.height*CH);
+      const clue=D.caseClues.find(c=>!g.resolved.has(c.id)&&dist(c,{x,y})<=1);
+      g.goal=clue||null;
+      const destination=clue?nearestReachable(clue):{x,y};g.path=bfs(g.p,destination);
+      if(clue&&nearClue(clue))interactCase(clue);
+    };
     drawCase();
   }
-  function caseEvidence(){return D.caseClues.map(c=>`<div class="clue-item ${g.resolved.has(c.id)?'done':''}"><span>${g.resolved.has(c.id)?'✅':'🔍'}</span><span>${g.resolved.has(c.id)?esc(c.name):'Pista por investigar'}</span></div>`).join('')}
-  function moveCase(dx,dy){if(!g||g.ending||g.current)return;let x=g.p.x+dx,y=g.p.y+dy;if(blocked(x,y))return;if(dx>0)g.dir=2;else if(dx<0)g.dir=1;else if(dy<0)g.dir=3;else g.dir=0;g.p={x,y};g.frame=(g.frame+1)%3;drawCase();if(g.goal&&dist(g.p,g.goal)<=1){g.path=[];interactCase(g.goal)}}
-  function nearestReachable(target){const around=[{x:target.x,y:target.y},{x:target.x-1,y:target.y},{x:target.x+1,y:target.y},{x:target.x,y:target.y-1},{x:target.x,y:target.y+1}].filter(p=>!blocked(p.x,p.y));around.sort((a,b)=>dist(a,g.p)-dist(b,g.p));return around[0]||g.p}
-  function bfs(start,destination){const key=p=>`${p.x},${p.y}`;if(blocked(destination.x,destination.y))return[];let queue=[start],seen=new Set([key(start)]),parent={};while(queue.length){const p=queue.shift();if(key(p)===key(destination)){const path=[];let pos=key(p);while(pos!==key(start)){let [x,y]=pos.split(',').map(Number);path.unshift({x,y});pos=parent[pos]}return path}for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){const n={x:p.x+dx,y:p.y+dy};if(!blocked(n.x,n.y)&&!seen.has(key(n))){seen.add(key(n));parent[key(n)]=key(p);queue.push(n)}}}return []}
-  function drawCase(){if(!g||g.mode!=='case')return;const canvas=$('#caseCanvas');if(!canvas)return;const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;
-    c.fillStyle='#1b3957';c.fillRect(0,0,640,384);
-    const atlasReady=g.caseTiles?.complete&&g.caseTiles.naturalWidth>=256;
-    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){
-      const u=x*TILE,v=y*TILE,edge=x===0||x===CW-1||y===0||y===CH-1;
-      const shelf=obstacles.has(`${x},${y}`);
-      if(atlasReady){
-        const tile=edge?2:shelf?((x+y)%3===0?4:3):((x+y)%7===0?1:0);
-        c.drawImage(g.caseTiles,tile*32,0,32,32,u,v,TILE,TILE);
-        if(!edge&&!shelf&&(x+y)%13===0){c.drawImage(g.caseTiles,6*32,0,32,32,u,v,TILE,TILE)}
-      }else{
-        c.fillStyle=edge?'#18314d':(x+y)%2?'#2e5167':'#31586c';c.fillRect(u,v,TILE,TILE);
-        if(shelf){c.fillStyle='#aa794c';c.fillRect(u+2,v+3,28,24);c.fillStyle='#e2bc76';c.fillRect(u+4,v+7,24,4)}
-      }
-      if(!edge&&!shelf&&y===6&&x>1&&x<CW-2){c.fillStyle='#d7bb5b';c.fillRect(u+9,v+28,13,2)}
+  function caseEvidence(){return D.caseClues.map(c=>`<div class="clue-item ${g.resolved.has(c.id)?'done':''}"><span>${g.resolved.has(c.id)?'✅':'🔍'}</span><span>${g.resolved.has(c.id)?esc(c.name):'Pista pendiente'}</span></div>`).join('')}
+  function nearClue(clue){return Math.hypot(g.motion.x-(clue.x+.5)*TILE,g.motion.y-(clue.y+.5)*TILE)<=TILE*1.55}
+  function nearestReachable(target){const around=[{x:target.x,y:target.y},{x:target.x-1,y:target.y},{x:target.x+1,y:target.y},{x:target.x,y:target.y-1},{x:target.x,y:target.y+1}].filter(p=>!blocked(p.x,p.y));
+    around.sort((a,b)=>dist(a,g.p)-dist(b,g.p));return around[0]||g.p;}
+  function bfs(start,destination){
+    const key=p=>`${p.x},${p.y}`;if(blocked(destination.x,destination.y))return[];
+    const queue=[start],seen=new Set([key(start)]),parent={};let head=0;
+    while(head<queue.length){const p=queue[head++];if(key(p)===key(destination)){
+      const path=[];let pos=key(p);while(pos!==key(start)){const [x,y]=pos.split(',').map(Number);path.unshift({x,y});pos=parent[pos]}return path;
     }
-    for(let i=2;i<=17;i+=5){c.fillStyle='#91ab55';c.fillRect(i*TILE+6,5*TILE+8,21,15);c.fillStyle='#dce3b8';c.fillRect(i*TILE+10,5*TILE+8,12,3)}
-    for(let i=0;i<(g.plants||[]).length;i++){const im=g.plants[i];if(im?.complete&&im.naturalWidth)c.drawImage(im,0,0,16,16,(3+i*6)*TILE+2,8*TILE+4,26,26);} 
-    for(const clue of D.caseClues){if(g.resolved.has(clue.id))continue;let x=clue.x*TILE,y=clue.y*TILE;c.fillStyle='#eebc53';c.fillRect(x+7,y+5,20,22);c.fillStyle='#fff4bc';c.fillRect(x+10,y+8,14,15);c.fillStyle='#b55b54';c.fillRect(x+12,y+14,10,3);c.fillStyle='#fff5a6';c.fillRect(x+12,y-4,9,7);c.fillStyle='#131b3d';c.font='bold 10px monospace';c.fillText('!',x+13,y+2)}
-    // Sprite original de la versión web: compañero del almacén.
-    if(g.character.complete&&g.character.naturalWidth){c.drawImage(g.character,0,0,32,32,18*TILE,10*TILE,32,32)}
-    const x=g.p.x*TILE,y=g.p.y*TILE;c.fillStyle='#12213c88';c.fillRect(x+5,y+27,23,4);
-    const characterOptions=EI.state.player?.avatar||EI.state.avatar;
-    const drawn=window.EI_CHARACTERS?.drawAt(c,characterOptions,x,y,32,g.dir,g.frame,'walk');
-    if(!drawn){if(!g.avatarCanvas){g.avatarCanvas=document.createElement('canvas');EI.avatarOnCanvas(g.avatarCanvas,characterOptions)}c.drawImage(g.avatarCanvas,x+3,y+(g.frame%2?0:1),27,31)}
+    for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]]){const n={x:p.x+dx,y:p.y+dy};if(!blocked(n.x,n.y)&&!seen.has(key(n))){seen.add(key(n));parent[key(n)]=key(p);queue.push(n)}}}
+    return [];
   }
-  function interactCase(force){if(!g||g.current||g.ending)return;const clue=force&&dist(g.p,force)<=1?force:D.caseClues.find(c=>!g.resolved.has(c.id)&&dist(g.p,c)<=1);if(!clue){EI.toast('Acércate a una pista para investigarla.');return}g.path=[];g.goal=null;g.current=clue;
-    $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">EVIDENCIA ${g.resolved.size+1} DE 4</div><h3>${clue.icon} ${esc(clue.name)}</h3><p>${esc(clue.desc)}</p><p><strong>${esc(clue.q)}</strong></p>${clue.options.map((s,i)=>`<button class="answer" data-clue-answer="${i}"><span class="answer-key">${'ABC'[i]}</span><span>${esc(s)}</span></button>`).join('')}</div></div>`;
-    $$('[data-clue-answer]').forEach(b=>b.onclick=()=>{const correct=+b.dataset.clueAnswer===clue.a;g.score+=correct?175:50;g.resolved.add(clue.id);displayScore();EI.sound(correct?'win':'bad');$('#caseModal').innerHTML='';g.current=null;const el=$('#caseEvidence');if(el)el.innerHTML=caseEvidence();drawCase();if(g.resolved.size===4)after(showCaseFinal,350)})
+  function drawCase(){
+    if(!g||g.mode!=='case')return;const canvas=$('#caseCanvas');if(!canvas)return;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+    ctx.fillStyle='#1b3957';ctx.fillRect(0,0,640,384);
+    const ready=g.caseTiles?.complete&&g.caseTiles.naturalWidth>=256;
+    const shelfTiles=[];
+    for(let y=0;y<CH;y++)for(let x=0;x<CW;x++){
+      const px=x*TILE,py=y*TILE,edge=x===0||x===CW-1||y===0||y===CH-1,shelf=obstacles.has(`${x},${y}`);
+      const tile=edge?2:shelf?((x+y)%3===0?4:3):((x+y)%7===0?1:0);
+      if(ready)ctx.drawImage(g.caseTiles,tile*32,0,32,32,px,py,TILE,TILE);
+      else {ctx.fillStyle=edge?'#18314d':shelf?'#855b42':'#31586c';ctx.fillRect(px,py,TILE,TILE)}
+      if(shelf)shelfTiles.push({px,py,tile,y:(y+1)*TILE});
+      if(!edge&&!shelf&&y===6&&x>1&&x<CW-2){ctx.fillStyle='#d7bb5b';ctx.fillRect(px+9,py+28,13,2)}
+    }
+    for(let i=0;i<(g.plants||[]).length;i++){const img=g.plants[i];if(img.complete&&img.naturalWidth)ctx.drawImage(img,0,0,16,16,(3+i*6)*TILE+2,8*TILE+4,26,26)}
+    const paint=[];
+    for(const clue of D.caseClues){if(g.resolved.has(clue.id))continue;
+      paint.push({y:(clue.y+.85)*TILE,draw:()=>{const x=clue.x*TILE,y=clue.y*TILE;ctx.fillStyle='#eebc53';ctx.fillRect(x+7,y+5,20,22);ctx.fillStyle='#fff4bc';ctx.fillRect(x+10,y+8,14,15);ctx.fillStyle='#b55b54';ctx.fillRect(x+12,y+14,10,3);ctx.fillStyle='#fff5a6';ctx.fillRect(x+12,y-4,9,7);ctx.fillStyle='#131b3d';ctx.font='bold 10px monospace';ctx.fillText('!',x+13,y+2)}});
+    }
+    paint.push({y:g.motion.y,draw:()=>{ctx.fillStyle='#10223c77';ctx.beginPath();ctx.ellipse(g.motion.x,g.motion.y-2,13,4,0,0,Math.PI*2);ctx.fill();g.anim.draw(ctx,g.motion.x,g.motion.y,1)}});
+    // Oculta al personaje detrás de los obstáculos que están más cerca de la cámara.
+    if(ready)for(const shelf of shelfTiles)paint.push({y:shelf.y,draw:()=>ctx.drawImage(g.caseTiles,shelf.tile*32,0,32,32,shelf.px,shelf.py,TILE,TILE)});
+    paint.sort((a,b)=>a.y-b.y);paint.forEach(p=>p.draw());
   }
-  function showCaseFinal(){if(!g||g.ending||g.finishing)return;g.finishing=true;g.current={id:'final'};
-    $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">🎖️ MISIÓN FINAL</div><h3>El dictamen de la bodega</h3><p>Has revisado calidad documental, trazabilidad, ciberseguridad y SST.</p><p><strong>${esc(D.caseFinal.q)}</strong></p>${D.caseFinal.options.map((s,i)=>`<button class="answer" data-final="${i}"><span class="answer-key">${'ABCD'[i]}</span><span>${esc(s)}</span></button>`).join('')}</div></div>`;
-    $$('[data-final]').forEach(b=>b.onclick=()=>{const correct=+b.dataset.final===D.caseFinal.a;g.score+=correct?220:45;g.score+=Math.min(80,Math.round(g.remaining*.5));EI.sound(correct?'win':'bad');finish(correct?'¡Investigación concluida! Identificaste la acción integral para resolver los hallazgos.':'Investigación terminada. Recuerda corregir y verificar antes de liberar procesos.')})
+  function interactCase(force){
+    if(!g||g.current||g.ending)return;
+    const clue=force&&nearClue(force)?force:D.caseClues.find(c=>!g.resolved.has(c.id)&&nearClue(c));
+    if(!clue){EI.toast('Acércate a una evidencia para investigar.');return}
+    g.path=[];g.goal=null;g.current={id:clue.id,pending:true};g.pressed.clear();g.touched.clear();
+    g.anim.trigger('interact',()=>{
+      if(!g||g.ending)return;
+      g.current=clue;
+      $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">EVIDENCIA ${g.resolved.size+1} DE 4</div><h3>${clue.icon} ${esc(clue.name)}</h3><p>${esc(clue.desc)}</p><p><strong>${esc(clue.q)}</strong></p>${clue.options.map((option,i)=>`<button class="answer" data-clue-answer="${i}"><span class="answer-key">${'ABC'[i]}</span><span>${esc(option)}</span></button>`).join('')}</div></div>`;
+      $$('[data-clue-answer]').forEach(b=>b.onclick=()=>{
+        const correct=+b.dataset.clueAnswer===clue.a;
+        g.score+=correct?175:50;g.resolved.add(clue.id);displayScore();EI.sound(correct?'win':'bad');$('#caseModal').innerHTML='';g.current=null;
+        $('#caseEvidence').innerHTML=caseEvidence();if(g.resolved.size===4)after(showCaseFinal,350);
+      });
+    });
+  }
+  function showCaseFinal(){
+    if(!g||g.ending||g.finishing)return;g.finishing=true;g.current={id:'final'};
+    $('#caseModal').innerHTML=`<div class="case-popup"><div class="case-popup-inner"><div class="section-kicker">🎖 MISIÓN FINAL</div><h3>Dictamen de la bodega</h3><p>Revisaste calidad documental, trazabilidad, ciberseguridad y SST.</p><p><strong>${esc(D.caseFinal.q)}</strong></p>${D.caseFinal.options.map((option,i)=>`<button class="answer" data-final="${i}"><span class="answer-key">${'ABCD'[i]}</span><span>${esc(option)}</span></button>`).join('')}</div></div>`;
+    $$('[data-final]').forEach(b=>b.onclick=()=>{const correct=+b.dataset.final===D.caseFinal.a;g.score+=correct?220:45;g.score+=Math.min(80,Math.round(g.remaining*.5));EI.sound(correct?'win':'bad');finish(correct?'¡Investigación concluida! Identificaste la acción integral.':'Investigación terminada: registra y verifica antes de liberar procesos.')});
   }
   function startLogic(){g.questions=D.logic;g.index=0;g.score=0;g.picked=[];g.misses=0;g.locked=false;runCountdown(150,()=>finish(`Resolviste ${g.index} desafíos de lógica antes de finalizar el tiempo.`));renderLogic()}
   function renderLogic(){if(!g||g.ending)return;if(g.index>=g.questions.length){finish('¡Completaste los seis desafíos de razonamiento!');return}const item=g.questions[g.index];g.locked=false;g.openedAt=now();g.picked=[];g.shuffled=item.type==='order'?shuffle(item.items):null;

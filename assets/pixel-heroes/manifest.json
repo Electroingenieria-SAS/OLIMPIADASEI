@@ -1,0 +1,75 @@
+{
+  "name": "Electroingeniería Pixel Heroes",
+  "version": "1.0.0",
+  "author": "Equipo de diseño digital",
+  "size": {
+    "w": 64,
+    "h": 80
+  },
+  "fps": 10,
+  "pixel_art": true,
+  "transparent": true,
+  "actions": {
+    "idle": 4,
+    "walk": 8,
+    "run": 8,
+    "interact": 6,
+    "celebrate": 6
+  },
+  "directions": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "characters": [
+    {
+      "id": "01_jefe",
+      "name": "Jefe",
+      "description": "Dirección ejecutiva",
+      "atlas": "personajes/01_jefe/atlas_completo.png",
+      "aseprite": "personajes/01_jefe/fuentes/01_jefe_animado.aseprite",
+      "totalFrames": 128
+    },
+    {
+      "id": "02_coordinador",
+      "name": "Coordinador",
+      "description": "Coordinación y liderazgo",
+      "atlas": "personajes/02_coordinador/atlas_completo.png",
+      "aseprite": "personajes/02_coordinador/fuentes/02_coordinador_animado.aseprite",
+      "totalFrames": 128
+    },
+    {
+      "id": "03_analista",
+      "name": "Analista",
+      "description": "Procesos, datos y calidad",
+      "atlas": "personajes/03_analista/atlas_completo.png",
+      "aseprite": "personajes/03_analista/fuentes/03_analista_animado.aseprite",
+      "totalFrames": 128
+    },
+    {
+      "id": "04_auxiliar",
+      "name": "Auxiliar",
+      "description": "Apoyo y administración",
+      "atlas": "personajes/04_auxiliar/atlas_completo.png",
+      "aseprite": "personajes/04_auxiliar/fuentes/04_auxiliar_animado.aseprite",
+      "totalFrames": 128
+    },
+    {
+      "id": "05_tecnico",
+      "name": "Técnico",
+      "description": "Mantenimiento e ingeniería",
+      "atlas": "personajes/05_tecnico/atlas_completo.png",
+      "aseprite": "personajes/05_tecnico/fuentes/05_tecnico_animado.aseprite",
+      "totalFrames": 128
+    },
+    {
+      "id": "06_operativo",
+      "name": "Operativo",
+      "description": "Operaciones y logística",
+      "atlas": "personajes/06_operativo/atlas_completo.png",
+      "aseprite": "personajes/06_operativo/fuentes/06_operativo_animado.aseprite",
+      "totalFrames": 128
+    }
+  ]
+}

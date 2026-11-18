@@ -18,7 +18,7 @@ for(const item of [...D.agility,...D.knowledge,...D.caseClues,...D.logic.filter(
  assert(item.options?.length>=3,'Preguntas sin opciones');
  assert(Number.isInteger(item.a)&&item.a>=0&&item.a<item.options.length,`Índice de respuesta inválido: ${item.q}`);
 }
-const chars=read('js/characters.js');
+const chars=read('js/hero-runtime.js');
 for(const role of ['Jefe','Coordinador','Analista','Auxiliar','Técnico','Operativo']){
  assert(chars.includes(`name:'${role}'`),`Falta rol ${role}`);
 }
@@ -26,7 +26,7 @@ const app=read('js/app.js');
 for(const marker of ['renderTitleScreen','renderBoard','renderHowTo','openGameBriefing','medalFor','arenaTimeMeter','resultRetry']){
  assert(app.includes(marker),`Falta función ${marker}`);
 }
-for(const src of ['css/styles.css','css/arcade.css','js/sprites.js','js/characters.js','js/data.js','js/app.js','js/games.js','assets/superretro/gamepack.bin']){
+for(const src of ['css/styles.css','css/arcade.css','js/sprites.js','js/hero-runtime.js','js/characters.js','js/data.js','js/app.js','js/games.js','assets/superretro/gamepack.bin']){
  assert(fs.statSync(src).size>1000,`Recurso requerido incompleto: ${src}`);
 }
 const manifest=JSON.parse(read('assets/superretro/manifest.json'));

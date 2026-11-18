@@ -3,7 +3,7 @@
   const D = window.EI_DATA;
   const state = {
     remote:false,config:{lock_by_day:false},player:null,scores:{},run:null,
-    sound:false,avatar:{skin:1,hair:0,hairColor:0,shirt:0,accessory:'helmet',style:'retro'},
+    sound:false,avatar:{preset:'01_jefe',style:'official'},
     ranking:null,areaFilter:'Todos',busy:false
   };
   const $ = (s,p=document)=>p.querySelector(s);
@@ -26,7 +26,8 @@
     // GitHub Pages no ejecuta PHP: modo demostración local, sin puntajes compartidos.
     const staticPages = /\.github\.io$/i.test(location.hostname);
     try{if(staticPages)throw Error('GitHub Pages: cliente estático');const r=await api('status');state.remote=true;state.config=r.config||{};$('#serverLabel').textContent='COMPETENCIA EN LÍNEA';$('#footerStatus').textContent='Resultados compartidos';const credentials=JSON.parse(localStorage.getItem(credsKey)||'null');if(credentials){try{const x=await api('resume',credentials);state.player=x.player;state.avatar={...state.avatar,...(x.player.avatar||{})};state.scores=x.scores||{}}catch(_){localStorage.removeItem(credsKey)}}}catch(_){state.remote=false;$('#serverLabel').textContent='MODO DEMO LOCAL';$('#footerStatus').textContent='Los puntos se guardan en este navegador';const v=demoData();const p=v.players.find(x=>x.id===v.current);if(p){state.player=p;state.scores={...p.scores}}}
-    await window.EI_SPRITES?.load();
+    try {await Promise.all([window.EI_SPRITES?.load(),window.EI_HEROES.load()])}
+    catch(error){console.error('[Pixel Heroes]',error);$('#footerStatus').textContent='Error al cargar personajes';toast('No se pudieron cargar los seis atlas: '+error.message);}
     renderHeader();renderTitleScreen();
   }
   function renderHeader(){const e=$('#userChip');if(!state.player){e.hidden=true;e.innerHTML='';return}e.hidden=false;e.innerHTML=`<canvas id="userAvatar" class="mini-head" width="24" height="28"></canvas><span>${esc(state.player.alias)}<small>${esc(state.player.area)}</small></span>`;avatarOnCanvas($('#userAvatar'),state.player.avatar||state.avatar)}
@@ -58,7 +59,7 @@
       <p class="title-hint">${state.remote?'Resultados compartidos habilitados.':'MODO DEMOSTRACIÓN · Tus resultados se guardan solo en este navegador.'}</p>
     </div>`;
     coverScene($('#titleScene'));
-    const chars=window.EI_CHARACTERS; if(chars){if(!chars.draw($('#titleAvatar'),avatar))window.addEventListener('ei-character-ready',()=>{if($('#titleAvatar'))chars.draw($('#titleAvatar'),avatar)},{once:true});}
+    const chars=window.EI_CHARACTERS;chars?.animate($('#titleAvatar'),avatar,'idle');
     $('#titleStart').onclick=()=>state.player?renderHub():openRegistration();
     $('#titleCharacters').onclick=()=>state.player?openWardrobe():openRegistration();
     $('#titleBoard').onclick=renderBoard;
@@ -81,13 +82,14 @@
     const coords=[[9,65],[28,27],[50,67],[72,23],[91,61]];
     $('#view').innerHTML=`<section class="party-board-view"><nav class="game-breadcrumb"><button id="boardBack">← MENÚ PRINCIPAL</button><span>/</span><span>TABLERO SEMANAL</span></nav>
       <div class="board-heading"><div><span class="section-kicker">◆ UNA SEMANA, CINCO MUNDOS</span><h1>El tablero de las olimpiadas</h1><p>Visita cada estación, descubre su desafío y consigue la mayor puntuación de tu área.</p></div><div class="board-score"><span>MI MARCADOR</span><strong>${total().toLocaleString('es-CO')} <small>PT</small></strong><span>${done}/5 PRUEBAS JUGADAS</span></div></div>
-      <div class="board-land"><div class="board-land-sky"></div><svg class="board-journey-path" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true"><path d="M90 260 Q150 50 280 110 T500 260 T720 90 T910 250"/></svg>
+      <div class="board-land"><div class="board-land-sky"></div><div class="board-player-preview"><canvas id="boardAvatar" width="90" height="110" aria-label="Tu personaje en el tablero"></canvas><span>${esc(window.EI_CHARACTERS.normalize(state.player?.avatar||state.avatar).role.name)}</span></div><svg class="board-journey-path" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true"><path d="M90 260 Q150 50 280 110 T500 260 T720 90 T910 250"/></svg>
       ${D.modes.map((m,i)=>{const completed=state.scores[m.id]!==undefined,locked=!unlocked(m);return `<button class="board-stop ${completed?'completed':''} ${locked?'locked':''}" style="--accent:${m.color};left:${coords[i][0]}%;top:${coords[i][1]}%" data-board-mode="${m.id}" ${locked?'disabled':''} aria-label="Día ${m.day}: ${esc(m.title)}">
         <span class="board-stop-ring"><span class="board-stop-icon">${m.icon}</span></span><span class="board-stop-label"><small>ESTACIÓN ${m.day}</small><b>${esc(m.title)}</b><em>${completed?'✓ '+state.scores[m.id]+' PT':locked?'BLOQUEADA':'JUGAR'}</em></span></button>`}).join('')}
       <div class="board-ground"></div></div>
       <div class="board-legend"><span><i class="legend-gold"></i> Disponible</span><span><i class="legend-green"></i> Completado</span><span><i class="legend-grey"></i> Cerrado por calendario</span></div>
       <div class="board-bottom"><button id="boardRoster" class="btn btn-outline">👤 ${state.player?'EDITAR ROL':'ELEGIR ROL'}</button><button id="boardRules" class="btn btn-outline">📖 REGLAS</button><button id="boardRanking" class="btn btn-primary">🏆 CLASIFICACIÓN</button></div>
     </section>`;
+    window.EI_CHARACTERS.animate($('#boardAvatar'),state.player?.avatar||state.avatar,'walk');
     $$('.board-stop').forEach(b=>b.onclick=()=>openGameBriefing(b.dataset.boardMode));
     $('#boardBack').onclick=renderTitleScreen;$('#boardRoster').onclick=()=>state.player?openWardrobe():openRegistration();$('#boardRules').onclick=renderHowTo;$('#boardRanking').onclick=renderRanking;
   }
@@ -133,7 +135,7 @@
     if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;
     const done=Object.keys(state.scores).length, next=D.modes.find(m=>state.scores[m.id]===undefined)||D.modes[0],
       avatar=state.player?.avatar||state.avatar;
-    const selected=window.EI_CHARACTERS?.normalize(avatar).role||{name:'Operativo',role:'Ejecución en campo',color:'#f183c9'};
+    const selected=window.EI_CHARACTERS?.normalize(avatar).role||{name:'Jefe',role:'Dirección ejecutiva',color:'#f7c65a'};
     const modeTags={
       agility:['Calidad documental','SST','Cálculo'],
       memory:['Conceptos EI','Símbolos','Agilidad'],
@@ -223,90 +225,74 @@
     bg.onerror=()=>{ctx.fillStyle='#1b426e';ctx.fillRect(0,0,canvas.width,canvas.height)};
     bg.src='assets/pixel/campus-ei.png';
   }
-  const spriteAvatarCache={};
-  function avatarOnCanvas(canvas,opt=state.avatar){if(!canvas)return; if(window.EI_CHARACTERS?.draw(canvas,opt,'idle'))return;const g=canvas.getContext('2d');canvas.width=24;canvas.height=28;g.imageSmoothingEnabled=false;g.clearRect(0,0,24,28);
-    if((opt.style||'retro')==='retro'){
-      const path=opt.accessory==='helmet'?'characters/males/male_01/idle/male_01_hat_idle_32x32.png':'characters/males/male_01/idle/male_01_idle_32x32.png';
-      const src=spriteUrl(path);
-      if(src){let im=spriteAvatarCache[path];if(!im){im=new Image();spriteAvatarCache[path]=im;im.onload=()=>{if(canvas.isConnected)avatarOnCanvas(canvas,opt)};im.src=src;}
-        if(im.complete&&im.naturalWidth){g.drawImage(im,0,0,32,32,0,0,24,28);return;}
-      }
-    }
-    const px=(x,y,w,h,color)=>{g.fillStyle=color;g.fillRect(x,y,w,h)};
-    const skins=['#fadbb7','#eebf90','#d99a6d','#ac6a45','#70462f'],hairs=['#3e2b39','#cf8d4e','#0f264d','#e8c052'],shirts=['#267cc3','#f7a82c','#f5f7fb','#8e70d1'];const skin=skins[+opt.skin]||skins[1],hair=hairs[+opt.hairColor]||hairs[0],shirt=shirts[+opt.shirt]||shirts[0];
-    px(8,24,3,3,'#0b1d3b');px(13,24,3,3,'#0b1d3b');px(8,20,4,5,'#213954');px(12,20,4,5,'#283d5b');px(6,14,12,9,shirt);px(5,15,2,7,skin);px(17,15,2,7,skin);px(8,13,8,3,skin);px(5,6,14,9,'#17243b');px(6,6,12,8,skin);px(7,4,10,4,hair);
-    if(opt.hair==='0'){px(5,4,14,3,hair);px(5,5,3,6,hair)}else if(opt.hair==='1'){px(6,3,12,5,hair);px(10,2,7,3,hair);px(5,5,2,6,hair)}else if(opt.hair==='2'){px(5,3,14,6,hair);px(5,6,2,11,hair);px(17,6,2,11,hair)}else{px(5,4,13,4,hair);px(12,2,6,5,hair)}
-    px(8,10,2,2,'#122641');px(14,10,2,2,'#122641');px(11,13,3,1,'#b35d54');
-    if(opt.accessory==='helmet'){px(5,2,14,4,'#e5edf1');px(7,1,10,3,'#ffffff');px(4,5,16,2,'#9eb3c4');px(11,2,2,2,'#f4ca48')}
-    if(opt.accessory==='glasses'){px(7,9,5,4,'#28384e');px(13,9,5,4,'#28384e');px(8,10,3,2,'#c7eaff');px(14,10,3,2,'#c7eaff');px(12,10,1,1,'#172338')}
-    if(opt.accessory==='headphones'){px(5,6,2,7,'#94e6ff');px(17,6,2,7,'#94e6ff');px(6,3,12,2,'#94e6ff')}
-    if(opt.accessory==='vest'){px(6,15,3,6,'#ffba39');px(15,15,3,6,'#ffba39');px(10,16,4,2,'#d7faff')}
-    px(11,18,2,2,'#ffdb67')
-  }
+  function avatarOnCanvas(canvas,opt=state.avatar){return window.EI_CHARACTERS.draw(canvas,opt,'idle')}
   function renderCharacterSelect(editing=false){
-    if(window.EI_GAMES)window.EI_GAMES.cleanup();
+    window.EI_GAMES?.cleanup();
     const C=window.EI_CHARACTERS,roles=C.presets;
     const current={...state.avatar,...(state.player?.avatar||{})};
-    if(!roles.some(p=>p.id===current.preset))current.preset=roles[0].id;
-    if(current.skin===undefined)current.skin=0;
-    const picked=()=>roles.find(r=>r.id===current.preset)||roles[0];
-    $('#view').innerHTML=`<section class="character-view">
-      <nav class="game-breadcrumb"><button type="button" id="characterBack">← VOLVER AL CAMPAMENTO</button><span>/</span><span>${editing?'MI PERSONAJE':'NUEVO PARTICIPANTE'}</span></nav>
-      <div class="character-title"><div><span class="section-kicker">✦ SELECCIÓN DE PARTICIPANTES</span><h1>${editing?'Personaliza tu rol':'Elige tu rol'}</h1><p>Seis roles corporativos inspirados en la estructura de la empresa, con animaciones pixel art y vestuario diferenciado.</p></div><div class="character-counter">06 <span>ROLES</span></div></div>
+    current.preset=C.normalize(current).preset;
+    let stopped=[];
+    const stopPreview=()=>{stopped.forEach(stop=>stop());stopped=[]};
+    const selected=()=>roles.find(x=>x.id===current.preset)||roles[0];
+    $('#view').innerHTML=`<section class="character-view official-roster">
+      <nav class="game-breadcrumb"><button type="button" id="characterBack">← REGRESAR</button><span>/</span><span>${editing?'MI PERSONAJE':'REGISTRO DE PARTICIPANTE'}</span></nav>
+      <div class="character-title"><div><span class="section-kicker">✦ ELIGE TU PERSONAJE OFICIAL</span><h1>${editing?'Tu personaje EI':'Selecciona tu héroe EI'}</h1><p>Seis diseños originales de Electroingeniería, cada uno con cinco acciones en cuatro direcciones y animación real de atlas.</p></div><div class="character-counter">06 <span>PERSONAJES</span></div></div>
       <div class="character-content">
-        <div class="character-roster" id="characterRoster" role="group" aria-label="Selecciona un personaje">${roles.map((r,i)=>`<button type="button" class="character-choice ${r.id===current.preset?'selected':''}" data-character="${r.id}" style="--role:${r.color}" aria-pressed="${r.id===current.preset}">
-           <span class="character-choice-art"><canvas width="75" height="75" data-preview="${r.id}" aria-hidden="true"></canvas></span><span class="character-choice-info"><strong>${esc(r.name)}</strong><small>${esc(r.role)}</small></span><span class="choice-check">✓</span>
-         </button>`).join('')}</div>
-        <div class="character-preview-panel"><div class="scene-label"><span>● PERSONAJE SELECCIONADO</span><span id="roleCode">01 / 06</span></div>
-          <div class="character-landscape"><span class="landscape-sun"></span><span class="landscape-hill"></span><span class="character-floor"></span><canvas id="rosterHero" width="160" height="160" aria-label="Previsualización animada del personaje seleccionado"></canvas></div>
-          <div class="character-caption"><h2 id="roleName"></h2><p id="roleDesc"></p><span class="character-description">SPRITE ORIGINAL + ROL CORPORATIVO PERSONALIZADO</span></div>
-          <div class="skin-selector"><span>TONO DEL PERSONAJE</span><div id="skinButtons">${C.palettes.map((x,i)=>`<button type="button" class="skin-swatch ${Number(current.skin)===i?'active':''}" data-skin="${i}" aria-label="Tono ${i+1}" aria-pressed="${Number(current.skin)===i}" style="--skin:${x.skin}"></button>`).join('')}</div></div>
-          <label class="hat-toggle"><input type="checkbox" id="characterHat"> Usar casco / sombrero de trabajo</label>
+        <div class="character-roster" id="characterRoster" role="group" aria-label="Seleccionar cargo">${roles.map(r=>`<button type="button" class="character-choice ${r.id===current.preset?'selected':''}" data-character="${r.id}" aria-pressed="${r.id===current.preset}" style="--role:${r.color}">
+          <span class="character-choice-art"><canvas width="76" height="90" data-idle="${r.id}" aria-label="${r.name} en reposo"></canvas></span>
+          <span class="character-choice-info"><strong>${r.name}</strong><small>${r.role}</small><span class="character-preview-twin"><canvas width="36" height="45" data-walk="${r.id}" aria-label="Caminata de ${r.name}"></canvas><span>Ver caminata</span></span></span><span class="choice-check">✓</span>
+        </button>`).join('')}</div>
+        <div class="character-preview-panel"><div class="scene-label"><span>● PERSONAJE ORIGINAL</span><span id="roleCode">01 / 06</span></div>
+          <div class="character-landscape"><span class="landscape-sun"></span><span class="landscape-hill"></span><span class="character-floor"></span><canvas id="rosterHero" width="160" height="190" aria-label="Vista animada de personaje"></canvas></div>
+          <div class="character-caption"><h2 id="roleName"></h2><p id="roleDesc"></p><span class="character-description">ATLAS ORIGINAL 64×80 · 20 ANIMACIONES</span></div>
+          <div class="official-preview-controls"><div class="preview-action-row">${['idle','walk','run','interact','celebrate'].map(a=>`<button type="button" data-preview-action="${a}" class="${a==='idle'?'active':''}">${{idle:'Reposo',walk:'Caminar',run:'Correr',interact:'Interactuar',celebrate:'Celebrar'}[a]}</button>`).join('')}</div>
+          <div class="preview-directions">${['down','left','right','up'].map(d=>`<button type="button" data-direction="${d}" class="${d==='down'?'active':''}">${{down:'↓',left:'←',right:'→',up:'↑'}[d]}</button>`).join('')}</div></div>
         </div>
-        <form class="character-register" id="characterForm"><span class="section-kicker">${editing?'EDITAR PARTICIPANTE':'CREAR PARTICIPANTE'}</span><h2>${editing?'Guardar apariencia':'Completa tu registro'}</h2>
+        <form class="character-register" id="characterForm"><span class="section-kicker">${editing?'MODIFICAR ELECCIÓN':'PARTICIPANTE EI'}</span><h2>${editing?'Confirmar personaje':'Datos de registro'}</h2>
           ${editing?`<div class="registered-name"><small>JUGADOR</small><strong>${esc(state.player.alias)}</strong><span>${esc(state.player.area)}</span></div>`:`<div class="field"><label for="regName">Nombre completo</label><input id="regName" maxlength="80" minlength="4" required placeholder="Nombre y apellido" autocomplete="name"></div>
            <div class="field"><label for="regAlias">Alias de jugador</label><input id="regAlias" maxlength="24" minlength="3" required placeholder="Ej. PixelJuan" autocomplete="nickname"></div>
            <div class="field"><label for="regArea">Área de trabajo</label><select id="regArea" required><option value="">Selecciona el área</option>${D.areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('')}</select></div>`}
-          <div class="register-reminder"><span>✦</span><p>${editing?'Los cambios de vestuario no modifican tu puntuación.':'Tu personaje participará en los cinco retos y aparecerá en tu perfil.'}</p></div>
-          <p class="modal-helper">Los seis roles se construyen sobre el sprite base disponible en SuperRetroRanch Free Tier; el videojuego aplica los uniformes, colores y variaciones en tiempo real.</p>
+          <div class="register-reminder"><span>✦</span><p>Tu personaje oficial se conservará durante las partidas, los casos explorables y las celebraciones.</p></div>
+          <p class="modal-helper">Personajes originales del paquete Electroingeniería Pixel Heroes. No se modificarán sus uniformes ni sus accesorios.</p>
           <div class="modal-error" id="characterError" role="alert"></div>
-          <button class="btn btn-primary character-submit" id="characterSubmit" type="submit">${editing?'✓ GUARDAR PERSONAJE':'▶ COMENZAR AVENTURA'}</button>
+          <button class="btn btn-primary character-submit" id="characterSubmit" type="submit">${editing?'✓ GUARDAR SELECCIÓN':'▶ REGISTRAR Y JUGAR'}</button>
         </form>
       </div></section>`;
-    let stopAnimation=()=>{};
-    const preview=$('#rosterHero');
-    const rerenderPortraits=()=>{if(!$('#characterRoster'))return;$$('[data-preview]').forEach(canvas=>C.draw(canvas,{...current,preset:canvas.dataset.preview,hat:roles.find(x=>x.id===canvas.dataset.preview).hat},'idle'))};
-    window.addEventListener('ei-character-ready',rerenderPortraits);
-    const cleanupSelect=()=>{stopAnimation();window.removeEventListener('ei-character-ready',rerenderPortraits)};
-    const update=()=>{
-      const p=picked(),pIndex=roles.indexOf(p);
-      $$('.character-choice').forEach(b=>{const selected=b.dataset.character===p.id;b.classList.toggle('selected',selected);b.setAttribute('aria-pressed',String(selected))});
-      $$('.skin-swatch').forEach(b=>{const selected=Number(b.dataset.skin)===Number(current.skin);b.classList.toggle('active',selected);b.setAttribute('aria-pressed',String(selected))});
-      $('#roleName').textContent=p.name;$('#roleDesc').textContent=p.desc;
-      $('#roleCode').textContent=String(pIndex+1).padStart(2,'0')+' / 06';
-      $('#characterHat').checked=current.hat!==undefined?Boolean(current.hat):p.hat;
-      stopAnimation();stopAnimation=C.animate(preview,current);
-      rerenderPortraits();
+    let action='idle',direction='down';
+    const startPortraits=()=>{
+      stopPreview();
+      $$('[data-idle]').forEach(canvas=>stopped.push(C.animate(canvas,{preset:canvas.dataset.idle},'idle')));
+      $$('[data-walk]').forEach(canvas=>stopped.push(C.animate(canvas,{preset:canvas.dataset.walk},'walk')));
+      stopped.push(C.animate($('#rosterHero'),current,action,direction));
     };
-    $$('.character-choice').forEach(b=>b.onclick=()=>{const p=roles.find(x=>x.id===b.dataset.character);current.preset=p.id;current.hat=p.hat;update();sound()});
-    $$('.skin-swatch').forEach(b=>b.onclick=()=>{current.skin=Number(b.dataset.skin);update();sound()});
-    $('#characterHat').onchange=e=>{current.hat=e.target.checked;update()};
-    $('#characterBack').onclick=()=>{cleanupSelect();renderHub()};
-    $('#characterForm').onsubmit=async e=>{
-      e.preventDefault();const save=$('#characterSubmit');save.disabled=true;save.textContent='GUARDANDO…';
-      const avatar={skin:current.skin,hair:current.hair||0,hairColor:current.hairColor||0,shirt:current.shirt||0,accessory:current.hat?'helmet':'none',style:'retro',preset:current.preset,hat:current.hat};
+    const update=()=>{
+      const role=selected(),idx=roles.indexOf(role);
+      $$('.character-choice').forEach(btn=>{const on=btn.dataset.character===role.id;btn.classList.toggle('selected',on);btn.setAttribute('aria-pressed',String(on))});
+      $('#roleName').textContent=role.name;$('#roleDesc').textContent=role.desc;
+      $('#roleCode').textContent=String(idx+1).padStart(2,'0')+' / 06';
+      $$('.preview-action-row button').forEach(btn=>btn.classList.toggle('active',btn.dataset.previewAction===action));
+      $$('.preview-directions button').forEach(btn=>btn.classList.toggle('active',btn.dataset.direction===direction));
+      startPortraits();
+    };
+    $$('.character-choice').forEach(btn=>btn.onclick=()=>{current.preset=btn.dataset.character;update();sound()});
+    $$('[data-preview-action]').forEach(btn=>btn.onclick=()=>{action=btn.dataset.previewAction;update()});
+    $$('[data-direction]').forEach(btn=>btn.onclick=()=>{direction=btn.dataset.direction;update()});
+    $('#characterBack').onclick=()=>{stopPreview();renderTitleScreen()};
+    $('#characterForm').onsubmit=async event=>{
+      event.preventDefault();const submit=$('#characterSubmit');submit.disabled=true;
+      const avatar={preset:current.preset,style:'official'};
       try{
         if(editing){
-          if(state.remote){const result=await api('avatar',{id:state.player.id,access_key:credentials().access_key,avatar});state.player=result.player}
-          else{const data=demoData(),player=data.players.find(x=>x.id===state.player.id);if(player){player.avatar=avatar;saveDemo(data)}state.player.avatar=avatar}
-          state.avatar={...avatar};cleanupSelect();renderHeader();renderHub();toast('Personaje actualizado');
+          if(state.remote){const res=await api('avatar',{id:state.player.id,access_key:credentials().access_key,avatar});state.player=res.player;}
+          else{const data=demoData(),player=data.players.find(x=>x.id===state.player.id);if(player){player.avatar=avatar;saveDemo(data)}state.player.avatar=avatar;}
+          state.avatar=avatar;stopPreview();renderHeader();renderHub();toast('Personaje oficial actualizado');
         } else {
           const name=$('#regName').value.trim(),alias=$('#regAlias').value.trim(),area=$('#regArea').value;
-          if(name.length<4||alias.length<3||!D.areas.includes(area))throw Error('Completa tu nombre, alias y área.');
-          const result=await register({name,alias,area,avatar});state.avatar={...avatar};cleanupSelect();renderHeader();renderHub();sound('win');
+          if(name.length<4||alias.length<3||!D.areas.includes(area))throw Error('Completa nombre, alias y área.');
+          const result=await register({name,alias,area,avatar});state.avatar=avatar;stopPreview();renderHeader();renderHub();sound('win');
           if(state.remote&&result.access_key)showCredential(result.access_key,result.player.id);
         }
-      }catch(err){$('#characterError').textContent=err.message;save.disabled=false;save.textContent=editing?'✓ GUARDAR PERSONAJE':'▶ COMENZAR AVENTURA';}
+      }catch(error){$('#characterError').textContent=error.message;submit.disabled=false;submit.textContent=editing?'✓ GUARDAR SELECCIÓN':'▶ REGISTRAR Y JUGAR';}
     };
     update();window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -324,13 +310,14 @@
     const m=D.modes.find(x=>x.id===mode),b=briefs[mode];
     $('#view').innerHTML=`<section class="game-shell party-arena" style="--arena:${m.color}">
       <nav class="game-breadcrumb"><button id="gameBack">← TABLERO</button><span>/</span><span>DÍA ${m.day} · ${esc(m.title)}</span></nav>
-      <div class="arena-status"><span class="arena-label">★ MINIJUEGO ${m.day}/5</span><span class="arena-mode">${esc(b.tag)}</span><button type="button" class="arena-exit" id="gameQuit">SALIR ✕</button></div>
+      <div class="arena-status"><span class="arena-mini-avatar"><canvas id="arenaAvatar" width="56" height="70" aria-label="Jugador seleccionado"></canvas></span><span class="arena-label">★ MINIJUEGO ${m.day}/5</span><span class="arena-mode">${esc(b.tag)}</span><button type="button" class="arena-exit" id="gameQuit">SALIR ✕</button></div>
       <header class="game-header arena-head"><div><div class="section-kicker">${m.icon} DESAFÍO DEL DÍA</div><h1>${esc(m.title)}</h1><p>${esc(m.description)}</p></div>
         <div class="game-header-meta"><div class="stat-box"><span class="stat-label">⏱ TIEMPO</span><span id="gameTime" class="stat-value">--:--</span></div><div class="stat-box"><span class="stat-label">⭐ PUNTOS</span><span id="gamePoints" class="stat-value">0</span></div></div></header>
       <div class="arena-time-track"><span id="arenaTimeMeter" style="width:100%"></span></div>
       <section class="game-main party-game-main"><div id="game-content"></div></section>
       <div class="arena-foot"><span>★ OLIMPIADAS EI PIXEL PARTY</span><span>HASTA 1.000 PUNTOS · ${esc(m.title)}</span></div>
     </section>`;
+    window.EI_CHARACTERS.animate($('#arenaAvatar'),state.player?.avatar||state.avatar,'idle');
     const leave=()=>{if(confirm('¿Salir del desafío? Perderás el progreso de esta ronda.')){window.EI_GAMES?.cleanup();state.run=null;renderBoard()}};
     $('#gameBack').onclick=leave;$('#gameQuit').onclick=leave;
     window.scrollTo({top:0,behavior:'smooth'});
@@ -346,13 +333,14 @@
     if(!practice){if(state.remote){try{const x=await api('finish',{id:state.player.id,mode,token:run.token,score:points,duration:Math.ceil((Date.now()-run.started)/1000),access_key:credentials().access_key});state.scores=x.scores||state.scores}catch(err){saved=false;toast('Sin guardar: '+err.message)}}else{const d=demoData();const p=d.players.find(x=>x.id===state.player.id);if(p){p.scores[mode]=Math.max(p.scores[mode]||0,points);state.scores={...p.scores};saveDemo(d)}}}
     const m=D.modes.find(x=>x.id===mode), medal=medalFor(points);sound('win');
     $('#view').innerHTML=`<section class="party-results"><div class="results-confetti">✦ ★ ✦ ★ ✦</div><div class="result-stage"><div class="section-kicker">MISIÓN COMPLETADA · DÍA ${m.day}</div><h1>${esc(m.title)}</h1>
-      <div class="result-coin ${medal.color}"><span>${medal.icon}</span><strong>${medal.name}</strong></div>
+      <canvas class="winner-pixel" id="winnerAvatar" width="160" height="180" aria-label="Tu personaje celebra el resultado"></canvas><div class="result-coin ${medal.color}"><span>${medal.icon}</span><strong>${medal.name}</strong></div>
       <p class="result-label">PUNTAJE OBTENIDO</p><strong class="result-score">${points.toLocaleString('es-CO')} <small>/ 1.000 PT</small></strong>
       <p class="result-detail">${esc(details||'¡Has terminado la misión!')}</p>
       <div class="result-status">${practice?'MODO PRÁCTICA · Este puntaje no cambia tu ranking.':saved?'✓ Puntaje registrado correctamente.':'⚠ Hubo un problema y el puntaje no se guardó.'}</div>
       <div class="result-medal-scale"><div class="${points>=400?'won':''}">🥉<small>400+</small></div><div class="${points>=650?'won':''}">🥈<small>650+</small></div><div class="${points>=850?'won':''}">🥇<small>850+</small></div></div>
       <div class="result-actions"><button class="btn btn-primary" id="resultBoard">🗺 VOLVER AL TABLERO</button><button class="btn btn-blue" id="resultRetry">↻ VOLVER A JUGAR</button><button class="btn btn-outline" id="resultRanking">🏆 CLASIFICACIÓN</button></div>
       </div></section>`;
+    window.EI_CHARACTERS.animate($('#winnerAvatar'),state.player?.avatar||state.avatar,'celebrate');
     $('#resultBoard').onclick=renderBoard;$('#resultRetry').onclick=()=>openGameBriefing(mode);$('#resultRanking').onclick=renderRanking;renderHeader();window.scrollTo({top:0,behavior:'smooth'})}
   async function renderRanking(){if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;$('#view').innerHTML=`<div class="ranking-page"><div class="section-kicker">${state.remote?'MARCADOR COMPARTIDO':'MODO DEMO LOCAL'}</div><h1>🏆 Clasificación de las Olimpiadas</h1><p class="text-muted">Los puntos corresponden a los cinco retos. ${state.remote?'Resultados compartidos entre participantes.':'Estos resultados solo existen en este navegador; no sirven para entregar premios oficiales.'}</p><div id="rankBody" class="panel">Cargando clasificación…</div><div style="margin:23px 0"><button id="rankBack" class="btn btn-outline">← Volver a la aventura</button></div></div>`;$('#rankBack').onclick=renderTitleScreen;
     try{state.ranking=state.remote?(await api('rankings')).rankings:rankFromDemo();renderRankContent()}catch(err){$('#rankBody').textContent='No se pudo cargar: '+err.message}
