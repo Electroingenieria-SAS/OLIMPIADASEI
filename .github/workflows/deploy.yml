@@ -36,6 +36,9 @@ jobs:
           test -s dist/css/arcade.css
           test -s dist/assets/superretro/gamepack.bin
           node --check dist/js/characters.js
+          node --check dist/js/hero-runtime.js
+          test -s dist/assets/pixel-heroes/personajes/01_jefe/atlas_completo.png
+          test -s dist/assets/pixel-heroes/personajes/06_operativo/atlas_completo.png
           node --check dist/js/app.js
           node --check dist/js/games.js
           test -s dist/js/sprites.js
@@ -48,6 +51,8 @@ jobs:
           node --check js/data.js
           node --check js/sprites.js
           node --check js/characters.js
+          node --check js/hero-runtime.js
+          node tools/check_pixel_heroes.mjs
           node tools/check_party_v2.mjs
           node -e "const m=require('./assets/superretro/manifest.json'); if(m.sprite_count!==53 || m.sprites.length!==53)process.exit(1); console.log('Sprites verificados:', m.sprite_count)"
           node -e "const fs=require('fs');const b=fs.readFileSync('assets/superretro/gamepack.bin');if(b.subarray(0,5).toString()!=='EISR2' || b.length<50000)process.exit(1);console.log('Pack validado:',b.length,'bytes')"
