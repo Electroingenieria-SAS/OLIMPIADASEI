@@ -41,6 +41,14 @@ jobs:
           test -s dist/assets/pixel-heroes/personajes/06_operativo/atlas_completo.png
           node --check dist/js/app.js
           node --check dist/js/games.js
+          test -s dist/js/investigation.js
+          test -s dist/js/investigation-core.js
+          test -s dist/js/investigation-content.js
+          test -s dist/assets/library/01_biblioteca_mapa.png
+          test -s dist/assets/library/colisiones.json
+          test -s dist/assets/library/interacciones.json
+          node --check dist/js/investigation.js
+          node --check dist/js/investigation-core.js
           test -s dist/js/sprites.js
           test -s dist/assets/superretro/gamepack.bin
           test -s dist/assets/superretro/manifest.json
@@ -53,6 +61,7 @@ jobs:
           node --check js/characters.js
           node --check js/hero-runtime.js
           node tools/check_pixel_heroes.mjs
+          node tools/check_library_ei2048.mjs
           node tools/check_party_v2.mjs
           node -e "const m=require('./assets/superretro/manifest.json'); if(m.sprite_count!==53 || m.sprites.length!==53)process.exit(1); console.log('Sprites verificados:', m.sprite_count)"
           node -e "const fs=require('fs');const b=fs.readFileSync('assets/superretro/gamepack.bin');if(b.subarray(0,5).toString()!=='EISR2' || b.length<50000)process.exit(1);console.log('Pack validado:',b.length,'bytes')"

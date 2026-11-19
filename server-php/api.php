@@ -11,7 +11,7 @@ header('Referrer-Policy: same-origin');
 header('X-Frame-Options: DENY');
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') { http_response_code(204); exit; }
 
-const MODES = ['agility', 'memory', 'case', 'logic', 'knowledge'];
+const MODES = ['agility', 'memory', 'case', 'logic', 'knowledge', 'investigation'];
 const AREAS = ['Administración', 'Almacén', 'Calidad', 'Comercial', 'Compras', 'Contabilidad', 'Despachos', 'Gestión Humana', 'Ingeniería', 'Logística', 'Mantenimiento', 'Operaciones', 'Sistemas / TIC', 'SST', 'Otra área'];
 // Configuración del evento. Para habilitar un reto cada día, definir fecha y true.
 const EVENT_START = '';                 // Ejemplo: '2026-11-16' (lunes)
@@ -61,6 +61,7 @@ function requirePlayer(array $d, array $db): array {
 }
 function publicScores(array $db,string $id): array {return $db['scores'][$id]??[];}
 function allowed(string $mode): bool {
+    if($mode==='investigation')return true;
     if(!LOCK_BY_DAY || EVENT_START==='')return true;
     $index=array_search($mode,MODES,true);
     $unlock=(new DateTimeImmutable(EVENT_START.' 00:00:00'))->modify('+'.$index.' days');
@@ -69,7 +70,7 @@ function allowed(string $mode): bool {
 function ranks(array $db): array {
     $res=[];
     foreach($db['players'] as $id=>$p){$scores=publicScores($db,$id);if(!$scores)continue;
-        $res[]=['id'=>$id,'alias'=>$p['alias'],'area'=>$p['area'],'total'=>array_sum($scores),'completed'=>count($scores),'scores'=>$scores];
+        $res[]=['id'=>$id,'alias'=>$p['alias'],'area'=>$p['area'],'total'=>array_sum($scores),'completed'=>count(array_diff(array_keys($scores),['investigation'])),'scores'=>$scores];
     }
     usort($res,fn($a,$b)=>($b['total']<=>$a['total'])?:($b['completed']<=>$a['completed'])?:strcmp($a['alias'],$b['alias']));
     return $res;
@@ -116,14 +117,14 @@ try {
             $d=input();$mode=textVal($d['mode']??'',20);$token=textVal($d['token']??'',120);
             if(!in_array($mode,MODES,true)||strlen($token)<20)abortRequest('Sesión de desafío inválida.',403);
             $score=$d['score']??null;
-            if(!is_int($score)||$score<0||$score>MAX_SCORE)abortRequest('El puntaje está fuera del rango permitido.');
+            if(!is_int($score)||$score<0||$score>($mode==='investigation'?100:MAX_SCORE))abortRequest('El puntaje está fuera del rango permitido.');
             $result=db(function(array &$db)use($d,$mode,$token,$score){$p=requirePlayer($d,$db);$id=$p['id'];
                 if(isset($db['scores'][$id][$mode]))abortRequest('El resultado ya fue registrado.',409);
                 $run=$db['runs'][$id][$mode]??null;
                 if(!$run||!hash_equals($run['token_hash'],hash('sha256',$token)))abortRequest('No existe una partida válida activa.',403);
                 $elapsed=time()-$run['started'];
-                $min=['agility'=>4,'memory'=>5,'case'=>8,'logic'=>5,'knowledge'=>8][$mode];
-                $max=['agility'=>135,'memory'=>150,'case'=>210,'logic'=>185,'knowledge'=>315][$mode];
+                $min=['agility'=>4,'memory'=>5,'case'=>8,'logic'=>5,'knowledge'=>8,'investigation'=>5][$mode];
+                $max=['agility'=>135,'memory'=>150,'case'=>210,'logic'=>185,'knowledge'=>315,'investigation'=>3600][$mode];
                 if($elapsed<$min||$elapsed>$max)abortRequest('Tiempo de partida fuera del rango válido.',409);
                 $db['scores'][$id][$mode]=$score;
                 unset($db['runs'][$id][$mode]);

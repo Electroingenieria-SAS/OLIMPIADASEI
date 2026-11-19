@@ -46,3 +46,38 @@ El workflow copia solo `assets/`, `css/`, `js/` e `index.html` a GitHub Pages. L
 Prueba local: `python -m http.server 8000` y visita `http://localhost:8000/`.
 
 Verificación: `node tools/check_pixel_heroes.mjs` y `python tools/verify_pixel_heroes.py`. Las pruebas de navegador se realizan con Playwright cuando esté disponible.
+
+
+## Etapa especial: El expediente del pedido equivocado (EI-2048)
+
+Nueva misión adicional integrada a la navegación y al registro de OLIMPIADAS EI,
+sin reemplazar los cinco juegos diarios. **Simulación formativa, no pedido real.**
+Puntuación máxima: **100 puntos adicionales** (5 evidencias × 8 = 40;
+3 decisiones × 15 = 45, con penalización de 3 por respuesta errónea,
+mínimo 6; bono sin pistas: 15, con una pista: 8, con dos o más: 0).
+
+Inicia desde menú → CASO EI-2048, tablero → etapa especial, o campamento.
+Personaje: el ya seleccionado en tu perfil, con los seis atlas oficiales.
+Desplazamiento: WASD/flechas, Shift para correr, E/Espacio para investigar,
+Escape para cerrar evidencia. En teléfono se ofrecen botones táctiles y navegación
+hasta objetos por rutas transitables. El personaje choca con la máscara del suelo
+`colisiones.json`, no con los colores del PNG. El expediente se puede consultar
+en cualquier orden, pero las tres decisiones finales deben ser correctas.
+
+Recursos:
+- `assets/library/01_biblioteca_mapa.png`: mapa **original**, 1280×960.
+- `assets/library/colisiones.json`: grilla 40×30 de 32 px.
+- `assets/library/interacciones.json`: geometría e IDs INT-01..INT-05.
+- `assets/library/02_biblioteca_colisiones.png` y `03_biblioteca_interacciones.png`:
+  mapas técnicos, no renderizados como fondo en producción.
+- `js/investigation-core.js`: puntuación, validación, geometría y restauración.
+- `js/investigation-content.js`: evidencias ficticias y tres decisiones.
+- `js/investigation.js`: escena interactiva Canvas, animaciones, controles y UI.
+- `tools/check_library_ei2048.mjs`: pruebas de geometría, rutas, scoring y lógica.
+
+Comprobaciones: `node tools/check_library_ei2048.mjs`,
+`node tools/check_pixel_heroes.mjs`, `node tools/check_party_v2.mjs`,
+`node --check js/investigation.js`, `php -l server-php/api.php`.
+La publicación en Pages es estática y los resultados del expediente se guardan en
+el navegador por participante. El servidor PHP opcional acepta el modo de investigación,
+pero no puede ejecutarse desde Pages ni constituye una validación antifraude por sí solo.

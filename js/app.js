@@ -21,7 +21,7 @@
   const credentials=()=>{try{return JSON.parse(localStorage.getItem(credsKey)||'null')||{}}catch(_){return {}}};
   const demoData=()=>{try{return JSON.parse(localStorage.getItem(demoKey))||{players:[],current:null}}catch(_){return {players:[],current:null}}};
   const saveDemo=x=>localStorage.setItem(demoKey,JSON.stringify(x));
-  const rankFromDemo=()=>{let p=demoData().players.filter(x=>Object.keys(x.scores||{}).length>0).map(x=>({...x,total:Object.values(x.scores).reduce((a,b)=>a+b,0)}));p.sort((a,b)=>b.total-a.total);return p.map(x=>({id:x.id,alias:x.alias,area:x.area,total:x.total,completed:Object.keys(x.scores).length,scores:x.scores}))};
+  const rankFromDemo=()=>{let p=demoData().players.filter(x=>Object.keys(x.scores||{}).length>0).map(x=>({...x,total:Object.values(x.scores).reduce((a,b)=>a+b,0)}));p.sort((a,b)=>b.total-a.total);return p.map(x=>({id:x.id,alias:x.alias,area:x.area,total:x.total,completed:D.modes.filter(m=>x.scores[m.id]!==undefined).length,scores:x.scores}))};
   async function initialize(){
     // GitHub Pages no ejecuta PHP: modo demostración local, sin puntajes compartidos.
     const staticPages = /\.github\.io$/i.test(location.hostname);
@@ -40,9 +40,10 @@
     knowledge:{icon:'🏆',tag:'GRAN CONCURSO',duration:'12 preguntas',controls:'Elige A, B, C o D; dispones de 50:50 y salto, una vez cada uno.',goal:'Responde sobre EI, documentación, SST, ciberseguridad y operaciones.'}
   };
   function medalFor(points){return points>=850?{name:'ORO',icon:'🥇',color:'gold'}:points>=650?{name:'PLATA',icon:'🥈',color:'silver'}:points>=400?{name:'BRONCE',icon:'🥉',color:'bronze'}:{name:'PARTICIPACIÓN',icon:'⭐',color:'entry'};}
-  function medalCount(){return Object.values(state.scores).filter(v=>Number(v)>=400).length;}
+  function medalCount(){return D.modes.filter(m=>Number(state.scores[m.id])>=400).length;}
   function coverScene(canvas){if(!canvas)return;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=false;const img=new Image();img.onload=()=>{if(canvas.isConnected)ctx.drawImage(img,0,0,canvas.width,canvas.height)};img.src='assets/pixel/campus-ei.png'}
   function renderTitleScreen(){
+    window.EI_INVESTIGATION?.cleanup();
     window.EI_GAMES?.cleanup();state.run=null;$('#modalRoot').innerHTML='';
     const avatar=state.player?.avatar||state.avatar;const role=window.EI_CHARACTERS?.normalize(avatar).role;
     $('#view').innerHTML=`<div class="party-title-view"><section class="party-title-stage">
@@ -53,7 +54,7 @@
         <p>Cinco días. Cinco minijuegos. Una gran competencia interna de conocimiento, agilidad y trabajo en equipo.</p>
         <div class="title-role-chip"><canvas id="titleAvatar" width="90" height="90"></canvas><span><small>PARTICIPANTE</small><b>${esc(state.player?.alias||'Aún sin registrar')}</b><small>${esc(role?.name||'Elige tu rol')}</small></span></div>
         <div class="title-primary-actions"><button class="btn btn-primary" id="titleStart">▶ ${state.player?'CONTINUAR PARTIDA':'COMENZAR A JUGAR'}</button><button class="btn btn-blue" id="titleCharacters">👤 ${state.player?'EDITAR PERSONAJE':'ELEGIR PERSONAJE'}</button></div>
-        <div class="title-secondary-actions"><button id="titleBoard">🗺 TABLERO SEMANAL</button><button id="titleRules">📖 CÓMO JUGAR</button><button id="titleRanking">🏆 CLASIFICACIÓN</button></div>
+        <div class="title-secondary-actions"><button id="titleBoard">🗺 TABLERO SEMANAL</button><button id="titleRules">📖 CÓMO JUGAR</button><button id="titleRanking">🏆 CLASIFICACIÓN</button><button id="titleLibrary">📚 CASO EI-2048</button></div>
       </div><span class="title-stamp">PRESS START · EI ARCADE</span></section>
       <div class="title-chapter-strip">${D.modes.map((m,i)=>`<div class="chapter-icon" style="--level:${m.color}"><span>${m.icon}</span><small>DÍA ${i+1}</small></div>`).join('')}</div>
       <p class="title-hint">${state.remote?'Resultados compartidos habilitados.':'MODO DEMOSTRACIÓN · Tus resultados se guardan solo en este navegador.'}</p>
@@ -64,21 +65,23 @@
     $('#titleCharacters').onclick=()=>state.player?openWardrobe():openRegistration();
     $('#titleBoard').onclick=renderBoard;
     $('#titleRules').onclick=renderHowTo;
-    $('#titleRanking').onclick=renderRanking;
+    $('#titleRanking').onclick=renderRanking;$('#titleLibrary').onclick=openInvestigationBriefing;
     window.scrollTo({top:0,behavior:'instant'});
   }
   function renderHowTo(){
+    window.EI_INVESTIGATION?.cleanup();
     window.EI_GAMES?.cleanup();state.run=null;
     $('#view').innerHTML=`<section class="party-rules-page"><nav class="game-breadcrumb"><button id="rulesBack">← MENÚ PRINCIPAL</button><span>/</span><span>MANUAL DEL JUGADOR</span></nav>
     <header class="rules-hero"><span class="section-kicker">★ MANUAL ARCADE EI</span><h1>¿Cómo se juega?</h1><p>Selecciona un rol, completa los cinco minijuegos y acumula puntos. Cada prueba otorga hasta 1.000 puntos y una medalla según el resultado.</p></header>
-    <div class="rules-summary"><div>🎮 <b>5</b><small>Minijuegos</small></div><div>⭐ <b>5.000</b><small>Puntos máximos</small></div><div>🏅 <b>4</b><small>Niveles de medalla</small></div></div>
+    <div class="rules-summary"><div>🎮 <b>5</b><small>Minijuegos</small></div><div>⭐ <b>5.100</b><small>Puntos máximos, incluida la etapa especial</small></div><div>🏅 <b>4</b><small>Niveles de medalla</small></div></div>
     <div class="rules-grid">${D.modes.map(m=>{const b=briefs[m.id];return `<article class="rule-card" style="--accent:${m.color}"><img src="assets/pixel/mode-${m.id}.png" alt=""><div><span>DÍA ${m.day} · ${b.duration}</span><h2>${b.icon} ${esc(m.title)}</h2><p>${esc(b.goal)}</p><small>${esc(b.controls)}</small></div></article>`}).join('')}</div>
     <div class="rules-prizes"><h2>Escala de recompensas</h2><div class="rules-medals"><span>🥇 ORO · 850–1.000 PT</span><span>🥈 PLATA · 650–849 PT</span><span>🥉 BRONCE · 400–649 PT</span><span>⭐ PARTICIPACIÓN · 0–399 PT</span></div><p>Para premios oficiales, la organización debe validar resultados y utilizar un ranking compartido con controles contra manipulación. GitHub Pages por sí solo conserva partidas de demostración local.</p></div>
     <button id="rulesStart" class="btn btn-primary">▶ IR AL TABLERO</button></section>`;
     $('#rulesBack').onclick=renderTitleScreen;$('#rulesStart').onclick=renderBoard;
   }
   function renderBoard(){
-    window.EI_GAMES?.cleanup();state.run=null;const done=Object.keys(state.scores).length;
+    window.EI_INVESTIGATION?.cleanup();
+    window.EI_GAMES?.cleanup();state.run=null;const done=D.modes.filter(m=>state.scores[m.id]!==undefined).length;
     const coords=[[9,65],[28,27],[50,67],[72,23],[91,61]];
     $('#view').innerHTML=`<section class="party-board-view"><nav class="game-breadcrumb"><button id="boardBack">← MENÚ PRINCIPAL</button><span>/</span><span>TABLERO SEMANAL</span></nav>
       <div class="board-heading"><div><span class="section-kicker">◆ UNA SEMANA, CINCO MUNDOS</span><h1>El tablero de las olimpiadas</h1><p>Visita cada estación, descubre su desafío y consigue la mayor puntuación de tu área.</p></div><div class="board-score"><span>MI MARCADOR</span><strong>${total().toLocaleString('es-CO')} <small>PT</small></strong><span>${done}/5 PRUEBAS JUGADAS</span></div></div>
@@ -86,12 +89,13 @@
       ${D.modes.map((m,i)=>{const completed=state.scores[m.id]!==undefined,locked=!unlocked(m);return `<button class="board-stop ${completed?'completed':''} ${locked?'locked':''}" style="--accent:${m.color};left:${coords[i][0]}%;top:${coords[i][1]}%" data-board-mode="${m.id}" ${locked?'disabled':''} aria-label="Día ${m.day}: ${esc(m.title)}">
         <span class="board-stop-ring"><span class="board-stop-icon">${m.icon}</span></span><span class="board-stop-label"><small>ESTACIÓN ${m.day}</small><b>${esc(m.title)}</b><em>${completed?'✓ '+state.scores[m.id]+' PT':locked?'BLOQUEADA':'JUGAR'}</em></span></button>`}).join('')}
       <div class="board-ground"></div></div>
+      <div class="lib-bonus-board"><img src="assets/library/01_biblioteca_mapa.png" alt="Mapa de biblioteca de investigación" loading="lazy"><div><span class="lib-eyebrow">ETAPA ESPECIAL · 100 PUNTOS ADICIONALES</span><h2>📚 El expediente del pedido equivocado</h2><p>Investiga cinco evidencias del pedido EI-2048 y decide cómo prevenir un despacho incorrecto.</p></div><button id="boardLibrary" class="btn btn-primary">INVESTIGAR →</button></div>
       <div class="board-legend"><span><i class="legend-gold"></i> Disponible</span><span><i class="legend-green"></i> Completado</span><span><i class="legend-grey"></i> Cerrado por calendario</span></div>
       <div class="board-bottom"><button id="boardRoster" class="btn btn-outline">👤 ${state.player?'EDITAR ROL':'ELEGIR ROL'}</button><button id="boardRules" class="btn btn-outline">📖 REGLAS</button><button id="boardRanking" class="btn btn-primary">🏆 CLASIFICACIÓN</button></div>
     </section>`;
     window.EI_CHARACTERS.animate($('#boardAvatar'),state.player?.avatar||state.avatar,'walk');
     $$('.board-stop').forEach(b=>b.onclick=()=>openGameBriefing(b.dataset.boardMode));
-    $('#boardBack').onclick=renderTitleScreen;$('#boardRoster').onclick=()=>state.player?openWardrobe():openRegistration();$('#boardRules').onclick=renderHowTo;$('#boardRanking').onclick=renderRanking;
+    $('#boardLibrary').onclick=openInvestigationBriefing;$('#boardBack').onclick=renderTitleScreen;$('#boardRoster').onclick=()=>state.player?openWardrobe():openRegistration();$('#boardRules').onclick=renderHowTo;$('#boardRanking').onclick=renderRanking;
   }
   function openGameBriefing(mode){
     const m=D.modes.find(x=>x.id===mode);if(!m)return;
@@ -132,6 +136,7 @@
   }
   function unlocked(mode){if(!state.remote||!state.config.lock_by_day)return true;let start=state.config.start_date;if(!start)return true;const target=new Date(start+'T00:00:00-05:00').getTime()+(mode.day-1)*86400000;return Date.now()>=target}
   function renderHub(){
+    window.EI_INVESTIGATION?.cleanup();
     if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;
     const done=Object.keys(state.scores).length, next=D.modes.find(m=>state.scores[m.id]===undefined)||D.modes[0],
       avatar=state.player?.avatar||state.avatar;
@@ -189,6 +194,7 @@
           <div class="mode-body"><h3>${esc(m.title)}</h3><span class="mode-desc">${esc(m.description)}</span><div class="mode-pill-row">${(modeTags[m.id]||[]).map(t=>`<span class="mode-pill">${esc(t)}</span>`).join('')}</div><div class="mode-bottom"><span>${locked?'🔒 Bloqueado':completed?'✓ Puntaje guardado':'▶ Iniciar minijuego'}</span><strong>${completed?Number(state.scores[m.id]).toLocaleString('es-CO')+' PT':'1.000 PT'}</strong></div></div>
         </button>`}).join('')}</section>
 
+      <section class="lib-hub-feature"><img src="assets/library/01_biblioteca_mapa.png" loading="lazy" alt="Mapa pixel art de biblioteca"><div><span class="lib-eyebrow">MISIÓN EXTRA · INVESTIGACIÓN GUIADA</span><h2>📚 El expediente del pedido equivocado</h2><p>Explora la biblioteca con tu personaje oficial, revisa 5 documentos del pedido EI-2048 y resuelve el caso. <strong>Hasta 100 puntos adicionales.</strong></p></div><button class="btn btn-primary" id="hubLibrary">▶ INICIAR INVESTIGACIÓN</button></section>
       <div class="arcade-lower party-lower">
         <section class="arcade-panel quest-panel premium-panel"><div class="arcade-panel-head"><div><span class="section-kicker">PROGRESO DE LA SEMANA</span><h3>Panel de avance</h3></div><span class="quest-progress">${done}/5 COMPLETADOS</span></div>
           <div class="arcade-meter"><span style="width:${done*20}%"></span></div>
@@ -306,6 +312,26 @@
   async function register(p){if(state.remote){const x=await api('register',p);state.player=x.player;state.avatar={...state.avatar,...(x.player.avatar||{})};state.scores=x.scores||{};localStorage.setItem(credsKey,JSON.stringify({id:x.player.id,access_key:x.access_key}));return x}
     const d=demoData();const id='demo-'+Date.now().toString(36);const u={...p,id,scores:{}};d.players.push(u);d.current=id;saveDemo(d);state.player=u;state.scores={};return {player:u}}
   function showCredential(secret,id){$('#modalRoot').innerHTML=`<div class="modal-backdrop"><div class="modal" role="dialog" aria-modal="true" style="max-width:560px"><div class="modal-header"><h2>✓ ¡Tu avatar está listo!</h2></div><div class="modal-body"><p>Guarda esta clave privada. Permite recuperar tu perfil si cambias de navegador.</p><div style="padding:16px;background:#061a3d;border:1px dashed #70a3df;border-radius:8px;word-break:break-all;font-family:monospace;font-size:15px"><strong>${esc(id)}</strong><br>${esc(secret)}</div><p class="modal-helper">No compartas esta clave: permite acceder a tus resultados.</p><div class="reg-bottom"><button id="copyCred" class="btn btn-blue">Copiar datos</button><button id="okCred" class="btn btn-primary">¡A jugar!</button></div></div></div></div>`;$('#copyCred').onclick=()=>{navigator.clipboard?.writeText('ID: '+id+'\nClave: '+secret);toast('Datos copiados')};$('#okCred').onclick=()=>$('#modalRoot').innerHTML=''}
+  function openInvestigationBriefing(){
+    window.EI_GAMES?.cleanup();
+    $('#modalRoot').innerHTML=`<div class="modal-backdrop" role="presentation"><section class="lib-entry-modal" role="dialog" aria-modal="true" aria-labelledby="libraryBriefTitle"><img src="assets/library/01_biblioteca_mapa.png" alt="Escenario pixel art de la biblioteca"><div><span class="lib-eyebrow">ETAPA ESPECIAL · CASO FORMATIVO</span><h2 id="libraryBriefTitle">El expediente del pedido equivocado</h2><p>El pedido EI-2048 tiene diferencias documentales antes del despacho. Busca cinco evidencias en la biblioteca y toma tres decisiones justificadas.</p><p>🎮 WASD/flechas · Shift correr · E o espacio investigar · controles táctiles</p><strong>📂 5 evidencias · 🧩 3 decisiones · ⭐ máximo 100 puntos</strong><div class="lib-actions"><button id="libraryBriefCancel" class="btn btn-outline">VOLVER</button><button id="libraryBriefStart" class="btn btn-primary">▶ ${state.player?'COMENZAR INVESTIGACIÓN':'REGISTRARME'}</button></div></div></section></div>`;
+    const close=()=>$('#modalRoot').innerHTML='';$('#libraryBriefCancel').onclick=close;
+    $('#libraryBriefStart').onclick=()=>{close();if(!state.player)openRegistration();else startInvestigation();};
+    $('#libraryBriefCancel').focus();
+  }
+  async function startInvestigation(){
+    if(!state.player){openRegistration();return;}
+    if(state.busy)return;
+    const mode='investigation',played=state.scores[mode]!==undefined,practice=played&&state.remote;
+    if(practice&&!confirm('Ya terminaste la investigación oficialmente. ¿Quieres revisarla en práctica? Tu ranking no cambiará.'))return;
+    state.busy=true;let token=null;
+    try{if(state.remote&&!practice){const r=await api('start',{id:state.player.id,mode,access_key:credentials().access_key});token=r.token;}}
+    catch(error){state.busy=false;toast(error.message);return;}
+    state.busy=false;state.run={mode,started:Date.now(),token,practice};
+    window.EI_INVESTIGATION.start({avatar:state.player.avatar||state.avatar,playerId:state.player.id,
+      onExit:()=>{window.EI_INVESTIGATION.cleanup();state.run=null;renderBoard()},
+      onComplete:(points,details)=>finish('investigation',points,details)});
+  }
   function gameScaffold(mode){
     const m=D.modes.find(x=>x.id===mode),b=briefs[mode];
     $('#view').innerHTML=`<section class="game-shell party-arena" style="--arena:${m.color}">
@@ -329,8 +355,14 @@
     state.busy=false;state.run={mode,started:Date.now(),token,practice};gameScaffold(mode);window.EI_GAMES.start(mode);sound();
   }
   async function finish(mode,score,details){if(!state.run||state.run.mode!==mode)return;const run=state.run;state.run=null;if(window.EI_GAMES)window.EI_GAMES.cleanup();let saved=true,practice=run.practice;
-    const points=Math.max(0,Math.min(1000,Math.round(score)));
+    const points=Math.max(0,Math.min(mode==='investigation'?100:1000,Math.round(score)));if(mode==='investigation')window.EI_INVESTIGATION?.cleanup();
     if(!practice){if(state.remote){try{const x=await api('finish',{id:state.player.id,mode,token:run.token,score:points,duration:Math.ceil((Date.now()-run.started)/1000),access_key:credentials().access_key});state.scores=x.scores||state.scores}catch(err){saved=false;toast('Sin guardar: '+err.message)}}else{const d=demoData();const p=d.players.find(x=>x.id===state.player.id);if(p){p.scores[mode]=Math.max(p.scores[mode]||0,points);state.scores={...p.scores};saveDemo(d)}}}
+    if(mode==='investigation'){
+      const medal=medalFor(points*10);sound('win');
+      $('#view').innerHTML=`<section class="lib-shell lib-final-result"><div class="lib-final-card"><span class="lib-eyebrow">EXPEDIENTE EI-2048 · MISIÓN FINALIZADA</span><h1>CASO RESUELTO: DESPACHO PREVENIDO</h1><canvas id="winnerAvatar" width="160" height="180" aria-label="Tu personaje celebra la investigación"></canvas><h2>${medal.icon} ${medal.name}</h2><strong class="lib-final-points">${points} <small>/ 100 puntos</small></strong><p>${esc(details)}</p><p>${practice?'MODO PRÁCTICA: no modifica tu puntuación oficial.':saved?'✓ Resultado integrado al marcador de Olimpiadas EI.':'⚠ No se pudo guardar el resultado. Consulta el estado de la conexión.'}</p><div class="lib-actions"><button id="resultBoard" class="btn btn-primary">← VOLVER A OLIMPIADAS EI</button><button id="resultRetry" class="btn btn-outline">↻ REVISAR EXPEDIENTE</button></div></div></section>`;
+      window.EI_CHARACTERS.animate($('#winnerAvatar'),state.player?.avatar||state.avatar,'celebrate');
+      $('#resultBoard').onclick=renderBoard;$('#resultRetry').onclick=openInvestigationBriefing;renderHeader();window.scrollTo({top:0,behavior:'smooth'});return;
+    }
     const m=D.modes.find(x=>x.id===mode), medal=medalFor(points);sound('win');
     $('#view').innerHTML=`<section class="party-results"><div class="results-confetti">✦ ★ ✦ ★ ✦</div><div class="result-stage"><div class="section-kicker">MISIÓN COMPLETADA · DÍA ${m.day}</div><h1>${esc(m.title)}</h1>
       <canvas class="winner-pixel" id="winnerAvatar" width="160" height="180" aria-label="Tu personaje celebra el resultado"></canvas><div class="result-coin ${medal.color}"><span>${medal.icon}</span><strong>${medal.name}</strong></div>
@@ -342,7 +374,8 @@
       </div></section>`;
     window.EI_CHARACTERS.animate($('#winnerAvatar'),state.player?.avatar||state.avatar,'celebrate');
     $('#resultBoard').onclick=renderBoard;$('#resultRetry').onclick=()=>openGameBriefing(mode);$('#resultRanking').onclick=renderRanking;renderHeader();window.scrollTo({top:0,behavior:'smooth'})}
-  async function renderRanking(){if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;$('#view').innerHTML=`<div class="ranking-page"><div class="section-kicker">${state.remote?'MARCADOR COMPARTIDO':'MODO DEMO LOCAL'}</div><h1>🏆 Clasificación de las Olimpiadas</h1><p class="text-muted">Los puntos corresponden a los cinco retos. ${state.remote?'Resultados compartidos entre participantes.':'Estos resultados solo existen en este navegador; no sirven para entregar premios oficiales.'}</p><div id="rankBody" class="panel">Cargando clasificación…</div><div style="margin:23px 0"><button id="rankBack" class="btn btn-outline">← Volver a la aventura</button></div></div>`;$('#rankBack').onclick=renderTitleScreen;
+  async function renderRanking(){
+    window.EI_INVESTIGATION?.cleanup();if(window.EI_GAMES)window.EI_GAMES.cleanup();state.run=null;$('#view').innerHTML=`<div class="ranking-page"><div class="section-kicker">${state.remote?'MARCADOR COMPARTIDO':'MODO DEMO LOCAL'}</div><h1>🏆 Clasificación de las Olimpiadas</h1><p class="text-muted">Los puntos corresponden a los cinco retos y a la investigación bonus de hasta 100 puntos. ${state.remote?'Resultados compartidos entre participantes.':'Estos resultados solo existen en este navegador; no sirven para entregar premios oficiales.'}</p><div id="rankBody" class="panel">Cargando clasificación…</div><div style="margin:23px 0"><button id="rankBack" class="btn btn-outline">← Volver a la aventura</button></div></div>`;$('#rankBack').onclick=renderTitleScreen;
     try{state.ranking=state.remote?(await api('rankings')).rankings:rankFromDemo();renderRankContent()}catch(err){$('#rankBody').textContent='No se pudo cargar: '+err.message}
   }
   function renderRankContent(){const r=state.ranking||[],areas=['Todos',...new Set(r.map(x=>x.area))].sort((a,b)=>a==='Todos'?-1:b==='Todos'?1:a.localeCompare(b));if(!areas.includes(state.areaFilter))state.areaFilter='Todos';const filtered=state.areaFilter==='Todos'?r:r.filter(x=>x.area===state.areaFilter);
